@@ -419,6 +419,8 @@ function mainSection(section, data, transactions) {
 export function renderApp(root, state) {
   root.innerHTML = `
     <div class="app">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
       ${sidebar(state.activeSection, state.data?.user, state.sidebarOpen)}
       <main class="main-content">
         ${header(state.activeSection)}
@@ -429,11 +431,13 @@ export function renderApp(root, state) {
   `
 }
 
-export function renderLoading(root, message = 'Memuat data dari SmartBank...', info = '🔒 Mode Read-Only | Golang + React') {
+export function renderLoading(root, message = 'Memuat data dari SmartBank...', info = '🔒 Mode Read-Only | System Initializing') {
   root.innerHTML = `
     <div class="loading-screen">
       <div class="loading-content">
-        <span class="logo-icon">📊</span>
+        <div class="logo-icon-wrapper">
+          <span class="logo-icon">📊</span>
+        </div>
         <h1 class="loading-title">UMKM Insight</h1>
         <p class="loading-subtitle">${escapeHtml(message)}</p>
         <div class="loading-bar"><div class="loading-bar-fill"></div></div>
