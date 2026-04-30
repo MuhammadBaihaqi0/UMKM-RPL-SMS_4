@@ -164,9 +164,14 @@ def format_number(value: float) -> str:
 
 
 def generate_insights(transactions: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """
+    Generate insight otomatis berbasis perbandingan data.
+    LOGIKA: insight harus berbasis perbandingan (bulan ini vs bulan lalu, dsb.)
+    """
     insights: list[dict[str, str]] = []
     tren = hitung_tren_bulanan(transactions)
 
+    # === INSIGHT 1: Perbandingan Penjualan Bulan Ini vs Bulan Lalu ===
     if len(tren) >= 2:
         last = tren[-1]
         prev = tren[-2]
@@ -175,12 +180,16 @@ def generate_insights(transactions: list[dict[str, Any]]) -> list[dict[str, str]
                 ((last["total_penjualan"] - prev["total_penjualan"]) / prev["total_penjualan"])
                 * 100
             )
+            selisih = abs(last["total_penjualan"] - prev["total_penjualan"])
             if pct > 0:
                 insights.append(
                     {
                         "type": "positive",
                         "icon": "📈",
-                        "message": f"Penjualan bulan {last['bulan']} naik {pct:.0f}% dibanding bulan sebelumnya!",
+                        "message": (
+                            f"Penjualan bulan {last['bulan']} naik {pct}% dibanding {prev['bulan']} "
+                            f"(+Rp{format_number(selisih)}). Tren pertumbuhan positif!"
+                        ),
                     }
                 )
             elif pct < 0:
@@ -188,64 +197,185 @@ def generate_insights(transactions: list[dict[str, Any]]) -> list[dict[str, str]
                     {
                         "type": "negative",
                         "icon": "📉",
-                        "message": f"Penjualan bulan {last['bulan']} turun {abs(pct):.0f}% dibanding bulan sebelumnya.",
+                        "message": (
+                            f"Penjualan bulan {last['bulan']} turun {abs(pct)}% dibanding {prev['bulan']} "
+                            f"(-Rp{format_number(selisih)}). Perlu strategi untuk menaikkan penjualan."
+                        ),
                     }
                 )
 
+        # === INSIGHT 2: Perbandingan Jumlah Transaksi Bulan Ini vs Bulan Lalu ===
+        if prev["jumlah_transaksi"] > 0:
+            tx_pct = round(
+                ((last["jumlah_transaksi"] - prev["jumlah_transaksi"]) / prev["jumlah_transaksi"])
+                * 100
+            )
+            if tx_pct > 0:
+                insights.append(
+                    {
+                        "type": "positive",
+                        "icon": "🛒",
+                        "message": (
+                            f"Volume transaksi bulan {last['bulan']} meningkat {tx_pct}% "
+                            f"({last['jumlah_transaksi']} vs {prev['jumlah_transaksi']} transaksi). "
+                            "Pelanggan semakin aktif bertransaksi."
+                        ),
+                    }
+                )
+            elif tx_pct < 0:
+                insights.append(
+                    {
+                        "type": "warning",
+                        "icon": "⚠️",
+                        "message": (
+                            f"Volume transaksi bulan {last['bulan']} turun {abs(tx_pct)}% "
+                            f"({last['jumlah_transaksi']} vs {prev['jumlah_transaksi']} transaksi). "
+                            "Pertimbangkan strategi pemasaran untuk meningkatkan traffic."
+                        ),
+                    }
+                )
+
+        # === INSIGHT 3: Net Amount Comparison ===
+        if prev.get("net_amount", 0) != 0:
+            net_pct = round(
+                ((last.get("net_amount", 0) - prev.get("net_amount", 0)) / abs(prev.get("net_amount", 1)))
+                * 100
+            )
+            if net_pct > 0:
+                insights.append(
+                    {
+                        "type": "positive",
+                        "icon": "💎",
+                        "message": (
+                            f"Pendapatan bersih (net) bulan {last['bulan']} naik {net_pct}% "
+                            f"dibanding {prev['bulan']}. Margin keuntungan membaik!"
+                        ),
+                    }
+                )
+
+    # === INSIGHT 4: Perbandingan Rata-rata per Bulan ===
+    if len(tren) >= 2:
+        last_avg = last["total_penjualan"] / max(last["jumlah_transaksi"], 1)
+        prev_avg = prev["total_penjualan"] / max(prev["jumlah_transaksi"], 1)
+        if prev_avg > 0:
+            avg_pct = round(((last_avg - prev_avg) / prev_avg) * 100)
+            if avg_pct > 10:
+                insights.append(
+                    {
+                        "type": "positive",
+                        "icon": "💰",
+                        "message": (
+                            f"Rata-rata nilai per transaksi naik {avg_pct}% bulan {last['bulan']} "
+                            f"(Rp{format_number(last_avg)} vs Rp{format_number(prev_avg)}). "
+                            "Pelanggan cenderung berbelanja lebih banyak."
+                        ),
+                    }
+                )
+            elif avg_pct < -10:
+                insights.append(
+                    {
+                        "type": "warning",
+                        "icon": "📊",
+                        "message": (
+                            f"Rata-rata nilai per transaksi turun {abs(avg_pct)}% bulan {last['bulan']} "
+                            f"(Rp{format_number(last_avg)} vs Rp{format_number(prev_avg)}). "
+                            "Pelanggan berbelanja dalam nominal lebih kecil."
+                        ),
+                    }
+                )
+
+    # === INSIGHT 5: Sumber Pendapatan Terbesar ===
     performa = hitung_performa_per_sumber(transactions)
     best = max(performa, key=lambda item: item["total_penjualan"], default=None)
     if best and best["total_penjualan"] > 0:
+        total_all = sum(p["total_penjualan"] for p in performa)
+        share = round((best["total_penjualan"] / total_all) * 100) if total_all > 0 else 0
         insights.append(
             {
                 "type": "info",
                 "icon": "🏆",
                 "message": (
-                    f"Sumber pendapatan terbesar berasal dari {best['source_app']} "
-                    f"dengan total Rp{format_number(best['total_penjualan'])}."
+                    f"Sumber pendapatan terbesar: {best['source_app']} "
+                    f"(Rp{format_number(best['total_penjualan'])}, {share}% dari total). "
+                    f"Fokuskan strategi di channel ini."
                 ),
             }
         )
 
-    avg = hitung_rata_rata(transactions)
-    insights.append(
-        {
-            "type": "info",
-            "icon": "💰",
-            "message": f"Rata-rata nilai penjualan per transaksi adalah Rp{format_number(avg)}.",
-        }
-    )
-
+    # === INSIGHT 6: Perbandingan Biaya Operasional vs Pendapatan ===
+    total_penjualan = hitung_total_penjualan(transactions)
     fees = hitung_breakdown_fee(transactions)
-    insights.append(
-        {
-            "type": "warning",
-            "icon": "🏦",
-            "message": (
-                "Total biaya operasional (fee + pajak) mencapai "
-                f"Rp{format_number(fees['total'])}. Pertimbangkan optimasi channel penjualan."
-            ),
-        }
-    )
-
-    if tren:
-        best_month = max(tren, key=lambda item: item["total_penjualan"])
+    if total_penjualan > 0:
+        fee_ratio = round((fees["total"] / total_penjualan) * 100, 1)
         insights.append(
             {
-                "type": "positive",
-                "icon": "⭐",
+                "type": "warning" if fee_ratio > 15 else "info",
+                "icon": "🏦",
                 "message": (
-                    f"Bulan terbaik untuk penjualan adalah {best_month['bulan']} "
-                    f"dengan total Rp{format_number(best_month['total_penjualan'])}."
+                    f"Total biaya operasional (fee + pajak): Rp{format_number(fees['total'])} "
+                    f"({fee_ratio}% dari total penjualan). "
+                    + (
+                        "Rasio cukup tinggi! Pertimbangkan optimasi channel."
+                        if fee_ratio > 15
+                        else "Rasio biaya masih dalam batas wajar."
+                    )
                 ),
             }
         )
 
-    count = sum(1 for item in transactions if item["type"] == "penjualan")
+    # === INSIGHT 7: Bulan Terbaik vs Terburuk ===
+    if len(tren) >= 2:
+        best_month = max(tren, key=lambda item: item["total_penjualan"])
+        worst_month = min(tren, key=lambda item: item["total_penjualan"])
+        if best_month["bulan"] != worst_month["bulan"]:
+            gap = best_month["total_penjualan"] - worst_month["total_penjualan"]
+            insights.append(
+                {
+                    "type": "info",
+                    "icon": "⭐",
+                    "message": (
+                        f"Bulan terbaik: {best_month['bulan']} (Rp{format_number(best_month['total_penjualan'])}). "
+                        f"Bulan terendah: {worst_month['bulan']} (Rp{format_number(worst_month['total_penjualan'])}). "
+                        f"Selisih: Rp{format_number(gap)}."
+                    ),
+                }
+            )
+
+    # === INSIGHT 8: Laba Kotor ===
+    total_pengeluaran = hitung_total_pengeluaran(transactions)
+    laba = total_penjualan - total_pengeluaran
+    if total_penjualan > 0:
+        margin = round((laba / total_penjualan) * 100, 1)
+        insights.append(
+            {
+                "type": "positive" if margin > 0 else "negative",
+                "icon": "💵" if margin > 0 else "🔴",
+                "message": (
+                    f"Margin laba kotor: {margin}% "
+                    f"(Laba Rp{format_number(laba)} dari penjualan Rp{format_number(total_penjualan)}). "
+                    + (
+                        "Bisnis dalam kondisi sehat dan menguntungkan!"
+                        if margin > 30
+                        else "Profit positif, terus tingkatkan efisiensi."
+                        if margin > 0
+                        else "Bisnis sedang merugi. Segera evaluasi pengeluaran."
+                    )
+                ),
+            }
+        )
+
+    # === INSIGHT 9: Total Transaksi Keseluruhan ===
+    count_penjualan = sum(1 for item in transactions if item["type"] == "penjualan")
+    count_pembelian = sum(1 for item in transactions if item["type"] == "pembelian_bahan")
     insights.append(
         {
             "type": "info",
-            "icon": "📊",
-            "message": f"Total {count} transaksi penjualan tercatat dalam periode ini.",
+            "icon": "📋",
+            "message": (
+                f"Total {len(transactions)} transaksi tercatat: "
+                f"{count_penjualan} penjualan, {count_pembelian} pembelian bahan, "
+                f"dan {len(transactions) - count_penjualan - count_pembelian} lainnya."
+            ),
         }
     )
 

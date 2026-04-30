@@ -1,8 +1,42 @@
-export const USER_ID = 'UMKM001'
+import axios from 'axios'
+
+// ============================================
+// Auth Helpers
+// ============================================
+
+export function getToken() {
+  return localStorage.getItem('umkm_token')
+}
+
+export function setToken(token) {
+  localStorage.setItem('umkm_token', token)
+}
+
+export function removeToken() {
+  localStorage.removeItem('umkm_token')
+}
+
+export function authHeaders() {
+  const token = getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+export async function apiGet(url) {
+  const response = await axios.get(url, { headers: authHeaders() })
+  return response.data
+}
+
+export async function apiPost(url, data) {
+  const response = await axios.post(url, data, { headers: authHeaders() })
+  return response.data
+}
+
+// ============================================
+// Format Helpers
+// ============================================
 
 export function formatRupiah(num) {
   if (num === undefined || num === null) return 'Rp 0'
-
   const abs = Math.abs(num)
   return `${num < 0 ? '-' : ''}Rp ${abs.toLocaleString('id-ID')}`
 }
@@ -25,5 +59,13 @@ export function escapeHtml(value) {
 }
 
 export function sectionTitle(section) {
-  return section.charAt(0).toUpperCase() + section.slice(1)
+  const titles = {
+    dashboard: 'Dashboard',
+    analisis: 'Analisis',
+    transaksi: 'Data Transaksi',
+    insights: 'Insights',
+    subscription: 'Langganan',
+    admin: 'Admin Panel',
+  }
+  return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)
 }

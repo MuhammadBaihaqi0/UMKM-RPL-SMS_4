@@ -1,3 +1,4 @@
+import { renderSubscriptionPage } from './pages/subscription.js'
 import { escapeHtml, formatDate, formatRupiah, sectionTitle } from './utils.js'
 
 function summaryCards(ringkasan) {
@@ -126,7 +127,7 @@ function insightPanel(insights) {
 }
 
 function analisisSection(analisis) {
-  const labaColor = analisis.ringkasan.laba_kotor >= 0 ? '#34d399' : '#f87171'
+  const labaColor = analisis.ringkasan.laba_kotor >= 0 ? '#2563eb' : '#dc2626'
 
   return `
     <section class="content-section">
@@ -181,8 +182,8 @@ function analisisSection(analisis) {
               <tr><td>Fee Bank</td><td>1%</td><td>${formatRupiah(analisis.breakdown_fee.fee_bank)}</td></tr>
               <tr><td>Fee Gateway</td><td>0.5%</td><td>${formatRupiah(analisis.breakdown_fee.fee_gateway)}</td></tr>
               <tr><td>Pajak Sistem</td><td>2%</td><td>${formatRupiah(analisis.breakdown_fee.pajak)}</td></tr>
-              <tr style="font-weight:700;border-top:2px solid rgba(255,255,255,0.1)">
-                <td>TOTAL</td><td></td><td style="color:#f87171">${formatRupiah(analisis.breakdown_fee.total)}</td>
+              <tr style="font-weight:700;border-top:2px solid var(--glass-border)">
+                <td>TOTAL</td><td></td><td style="color:#dc2626">${formatRupiah(analisis.breakdown_fee.total)}</td>
               </tr>
             </tbody>
           </table>
@@ -263,9 +264,9 @@ function subscriptionCard(user) {
   const subscription = user?.subscription
   const statusText =
     subscription?.status === 'premium'
-      ? `Premium (aktif sampai ${escapeHtml(subscription.aktif_sampai)})`
+      ? `Premium (aktif sampai ${escapeHtml(subscription.expired_at ? new Date(subscription.expired_at).toLocaleDateString('id-ID') : '-')})`
       : 'Free Plan'
-  const statusColor = subscription?.status === 'premium' ? '#fbbf24' : '#8888aa'
+  const statusColor = subscription?.status === 'premium' ? '#2563eb' : '#64748b'
 
   return `
     <div class="subscription-info-card">
@@ -321,20 +322,33 @@ function insightsSection(analisis, user) {
 function footer() {
   return `
     <footer class="main-footer">
-      <p>📊 UMKM Insight v2.0 | Golang + React | Kelompok 6 - RPL 2</p>
+      <p>📊 UMKM Insight v3.0 | Python + Flask + Supabase | Kelompok 6 - RPL 2</p>
       <p>Dosen: M. Yusril Helmi Setyawan, S.Kom., M.Kom.</p>
       <p class="footer-note">🔒 Sistem Read-Only — Data dari SmartBank via API Gateway</p>
     </footer>
   `
 }
 
-function sidebar(section, user, sidebarOpen) {
+function sidebar(state, onLogout) {
+  const section = state.activeSection
+  const user = state.data?.user
+  const sidebarOpen = state.sidebarOpen
+  const authUser = state.user
+  const isAdmin = authUser?.role === 'admin'
+  const subscription = user?.subscription || authUser?.subscription || {}
+  const isPremium = subscription?.status === 'premium'
+
   const navItems = [
     { key: 'dashboard', icon: '🏠', label: 'Dashboard' },
     { key: 'analisis', icon: '📈', label: 'Analisis' },
     { key: 'transaksi', icon: '📋', label: 'Data Transaksi' },
     { key: 'insights', icon: '💡', label: 'Insights' },
+    { key: 'subscription', icon: '💳', label: 'Langganan' },
   ]
+
+  if (isAdmin) {
+    navItems.push({ key: 'admin', icon: '🛡️', label: 'Admin Panel' })
+  }
 
   return `
     <aside class="sidebar ${sidebarOpen ? 'open' : ''}">
@@ -360,23 +374,18 @@ function sidebar(section, user, sidebarOpen) {
       </nav>
 
       <div class="sidebar-footer">
-        ${
-          user
-            ? `
-              <div class="user-info">
-                <div class="user-avatar">🏪</div>
-                <div class="user-details">
-                  <span class="user-name">${escapeHtml(user.nama)}</span>
-                  <span class="user-role">UMKM Owner</span>
-                </div>
-              </div>
-              <div class="subscription-badge">
-                <span>⭐</span>
-                <span>${user.subscription?.status === 'premium' ? '⭐ Premium' : 'Free Plan'}</span>
-              </div>
-            `
-            : ''
-        }
+        <div class="user-info">
+          <div class="user-avatar">🏪</div>
+          <div class="user-details">
+            <span class="user-name">${escapeHtml(authUser?.nama_umkm || user?.nama || 'User')}</span>
+            <span class="user-role">${isAdmin ? 'Administrator' : 'UMKM Owner'}</span>
+          </div>
+        </div>
+        <div class="subscription-badge">
+          <span>${isPremium ? '⭐' : '🆓'}</span>
+          <span>${isPremium ? 'Premium' : 'Free Plan'}</span>
+        </div>
+        <a href="#" class="logout-btn" id="logout-btn">🚪 Logout</a>
       </div>
     </aside>
   `
@@ -399,7 +408,7 @@ function header(section) {
         <div class="header-badge">
           <span class="badge badge-source">📦 SmartBank</span>
           <span class="badge badge-gateway">🔗 API Gateway</span>
-          <span class="badge badge-lang">🐹 Golang</span>
+          <span class="badge badge-lang">🐍 Python</span>
         </div>
       </div>
     </header>
@@ -413,15 +422,16 @@ function mainSection(section, data, transactions) {
   if (section === 'analisis') return analisisSection(analisis)
   if (section === 'transaksi') return transaksiSection(transactions)
   if (section === 'insights') return insightsSection(analisis, user)
+  if (section === 'subscription') return renderSubscriptionPage(user)
   return dashboardSection(analisis)
 }
 
-export function renderApp(root, state) {
+export function renderApp(root, state, onLogout) {
   root.innerHTML = `
     <div class="app">
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
-      ${sidebar(state.activeSection, state.data?.user, state.sidebarOpen)}
+      ${sidebar(state, onLogout)}
       <main class="main-content">
         ${header(state.activeSection)}
         ${mainSection(state.activeSection, state.data, state.filteredTransactions)}
@@ -453,7 +463,7 @@ export function renderError(root) {
       <div class="loading-content">
         <span class="logo-icon">⚠️</span>
         <h1 class="loading-title">Gagal Memuat Data</h1>
-        <p class="loading-subtitle">Pastikan backend Golang berjalan di port 8080</p>
+        <p class="loading-subtitle">Pastikan backend Python berjalan di port 8080</p>
       </div>
     </div>
   `
