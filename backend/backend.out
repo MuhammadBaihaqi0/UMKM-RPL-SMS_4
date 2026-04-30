@@ -1,0 +1,26 @@
+
+==============================================
+         UMKM Insight Server v3.0
+         Sistem Analitik Read-Only + SaaS
+==============================================
+  Backend  : http://localhost:8080
+  Database : MySQL (XAMPP)
+  Mode     : READ-ONLY (transaksi keuangan)
+  Source   : SmartBank (Dummy Data)
+  Lang     : Python + Flask Framework
+==============================================
+  API Endpoints:
+  POST /api/auth/register
+  POST /api/auth/login
+  GET  /api/auth/me
+  GET  /api/umkm_insight/dashboard
+  GET  /api/umkm_insight/ambil_data_transaksi
+  GET  /api/umkm_insight/analisis_penjualan
+  GET  /api/umkm_insight/biaya_akses_analytics
+  GET  /api/smartbank/pay
+  GET  /api/admin/users
+  GET  /api/admin/stats
+==============================================
+
+ * Serving Flask app 'app.server'
+ * Debug mode: off

@@ -10,9 +10,9 @@ from .admin_routes import admin_bp
 from .analysis import analisis_lengkap, parse_rfc3339
 from .auth_routes import auth_bp
 from .data_store import get_fee_structure, get_smartbank_user_profile, get_transactions, load_dummy_data
+from .db import SUBSCRIPTION_PACKAGES, check_subscription_expiry, get_package_catalog
 from .middleware import require_auth
 from .smartbank_routes import smartbank_bp
-from .supabase_client import check_subscription_expiry, get_supabase
 
 
 def error_response(message: str, status_code: int, extra: dict | None = None):
@@ -20,6 +20,144 @@ def error_response(message: str, status_code: int, extra: dict | None = None):
     if extra:
         payload.update(extra)
     return jsonify(payload), status_code
+
+
+def empty_analytics(note: str) -> dict:
+    return {
+        "ringkasan": {
+            "total_penjualan": 0,
+            "total_pengeluaran": 0,
+            "laba_kotor": 0,
+            "rata_rata_transaksi": 0,
+            "jumlah_transaksi": 0,
+            "jumlah_penjualan": 0,
+        },
+        "tren_bulanan": [],
+        "performa_per_sumber": [],
+        "distribusi_tipe": {},
+        "breakdown_fee": {
+            "fee_marketplace": 0,
+            "fee_pos": 0,
+            "fee_supplier": 0,
+            "fee_logistik": 0,
+            "fee_bank": 0,
+            "fee_gateway": 0,
+            "pajak": 0,
+            "total": 0,
+        },
+        "insights": [
+            {
+                "type": "info",
+                "icon": "i",
+                "message": note,
+            }
+        ],
+    }
+
+
+def limit_dashboard_by_package(analisis: dict, package_name: str) -> dict:
+    if package_name == "free":
+        return {
+            "ringkasan": analisis["ringkasan"],
+            "tren_bulanan": [],
+            "performa_per_sumber": [],
+            "distribusi_tipe": {},
+            "breakdown_fee": {
+                "fee_marketplace": 0,
+                "fee_pos": 0,
+                "fee_supplier": 0,
+                "fee_logistik": 0,
+                "fee_bank": 0,
+                "fee_gateway": 0,
+                "pajak": 0,
+                "total": 0,
+            },
+            "insights": [
+                {
+                    "type": "warning",
+                    "icon": "🔒",
+                    "message": "Upgrade ke Basic, Pro, atau Enterprise untuk melihat grafik dan analisis lebih dalam.",
+                }
+            ],
+            "comparison": {},
+            "reporting": {"can_report_decline": False, "reason": "Paket Free belum mendukung pelaporan ke SmartBank."},
+        }
+
+    if package_name == "basic":
+        return {
+            **analisis,
+            "breakdown_fee": {
+                "fee_marketplace": 0,
+                "fee_pos": 0,
+                "fee_supplier": 0,
+                "fee_logistik": 0,
+                "fee_bank": 0,
+                "fee_gateway": 0,
+                "pajak": 0,
+                "total": 0,
+            },
+            "reporting": {"can_report_decline": False, "reason": "Pelaporan ke SmartBank tersedia mulai paket Pro."},
+        }
+
+    return analisis
+
+
+def enrich_analytics(analisis: dict, subscription: dict) -> dict:
+    tren = analisis.get("tren_bulanan", [])
+    comparison = {}
+    if len(tren) >= 2:
+        current = tren[-1]
+        previous = tren[-2]
+        previous_value = previous["total_penjualan"] or 0
+        if previous_value > 0:
+            percent = round(((current["total_penjualan"] - previous_value) / previous_value) * 100, 2)
+        else:
+            percent = 0
+        comparison = {
+            "current_month": current["bulan"],
+            "previous_month": previous["bulan"],
+            "change_percent": percent,
+            "direction": "naik" if percent > 0 else "turun" if percent < 0 else "stabil",
+            "summary": (
+                f"Penjualan {abs(percent):.0f}% {'naik' if percent > 0 else 'turun' if percent < 0 else 'stabil'} "
+                f"dibanding {previous['bulan']}."
+            ),
+        }
+
+    fee = analisis.get("breakdown_fee", {})
+    fee_total = fee.get("total", 0)
+    total_penjualan = analisis.get("ringkasan", {}).get("total_penjualan", 0) or 0
+    fee_ratio = round((fee_total / total_penjualan) * 100, 2) if total_penjualan else 0
+
+    reporting = {
+        "can_report_decline": False,
+        "reason": "Performa belum memenuhi syarat pelaporan.",
+        "recommended_action": "Pantau performa penjualan dan biaya operasional bulan berjalan.",
+    }
+    if comparison and comparison["change_percent"] < 0:
+        reporting["recommended_action"] = "Performa menurun. Anda bisa mengirim laporan ke SmartBank untuk tindak lanjut."
+        if subscription.get("can_report_decline"):
+            reporting = {
+                "can_report_decline": True,
+                "reason": "",
+                "title": "Laporkan penurunan performa ke SmartBank",
+                "detail": comparison["summary"],
+                "metric_snapshot": {
+                    "comparison": comparison,
+                    "fee_ratio": fee_ratio,
+                    "total_fee": fee_total,
+                },
+                "recommended_action": "Klik tombol laporkan agar SmartBank menerima sinyal penurunan performa UMKM Anda.",
+            }
+        else:
+            reporting["reason"] = "Fitur pelaporan ke SmartBank tersedia mulai paket Pro."
+
+    return {
+        **analisis,
+        "comparison": comparison,
+        "fee_ratio_percent": fee_ratio,
+        "reporting": reporting,
+    }
 
 
 def create_app() -> Flask:
@@ -35,24 +173,15 @@ def create_app() -> Flask:
         supports_credentials=True,
     )
 
-    # ============================================
-    # Register Blueprints (Fitur Baru)
-    # ============================================
-    app.register_blueprint(auth_bp)       # /api/auth/*
-    app.register_blueprint(smartbank_bp)  # /api/smartbank/*
-    app.register_blueprint(admin_bp)      # /api/admin/*
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(smartbank_bp)
+    app.register_blueprint(admin_bp)
 
-    # ============================================
-    # Middleware: Request Logger (API Gateway Simulasi)
-    # ============================================
     @app.before_request
     def log_request():
         request.environ["gateway_start_time"] = time.perf_counter()
         request.environ["gateway_timestamp"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-        print(
-            f"[{request.environ['gateway_timestamp']}] [API-GATEWAY] "
-            f"{request.method} {request.path} - {request.remote_addr}"
-        )
+        print(f"[{request.environ['gateway_timestamp']}] [API-GATEWAY] {request.method} {request.path} - {request.remote_addr}")
 
     @app.after_request
     def add_gateway_headers(response):
@@ -65,36 +194,33 @@ def create_app() -> Flask:
         if started is not None:
             duration = time.perf_counter() - started
             finished = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-            print(
-                f"[{finished}] [API-GATEWAY] {request.method} {request.path} - "
-                f"{response.status_code} - {duration:.6f}s"
-            )
+            print(f"[{finished}] [API-GATEWAY] {request.method} {request.path} - {response.status_code} - {duration:.6f}s")
         return response
 
-    # ============================================
-    # API Info
-    # ============================================
     @app.get("/api")
     def api_info():
         return jsonify(
             {
                 "status": "success",
                 "application": "UMKM Insight",
-                "version": "3.0.0",
+                "version": "4.0.0",
                 "language": "Python (Flask Framework)",
-                "database": "Supabase (PostgreSQL)",
-                "mode": "READ-ONLY (untuk transaksi keuangan)",
+                "database": "MySQL (XAMPP)",
+                "mode": "READ-ONLY (transaksi tetap melalui SmartBank)",
+                "subscription_packages": list(SUBSCRIPTION_PACKAGES.keys()),
                 "endpoints": {
                     "auth": {
                         "register": "POST /api/auth/register",
                         "login": "POST /api/auth/login",
                         "profile": "GET /api/auth/me",
                     },
-                    "data": "GET /api/umkm_insight/ambil_data_transaksi?user_id=UMKM001",
-                    "analisis": "GET /api/umkm_insight/analisis_penjualan?user_id=UMKM001",
+                    "packages": "GET /api/subscriptions/packages",
                     "dashboard": "GET /api/umkm_insight/dashboard?user_id=UMKM001",
+                    "analytics": "GET /api/umkm_insight/analisis_penjualan?user_id=UMKM001",
+                    "transactions": "GET /api/umkm_insight/ambil_data_transaksi?user_id=UMKM001",
                     "subscription": "GET /api/umkm_insight/biaya_akses_analytics?user_id=UMKM001",
-                    "payment": "GET /api/smartbank/pay?user_id=xxx&amount=10000",
+                    "payment": "GET /api/smartbank/pay?user_id=xxx&package=pro&duration=bulanan",
+                    "report_decline": "POST /api/smartbank/report-decline",
                     "admin": {
                         "users": "GET /api/admin/users",
                         "stats": "GET /api/admin/stats",
@@ -103,26 +229,21 @@ def create_app() -> Flask:
             }
         )
 
-    # ============================================
-    # SmartBank Data Endpoints (READ-ONLY)
-    # ============================================
     @app.get("/api/umkm_insight/ambil_data_transaksi")
     @require_auth
     def ambil_data_transaksi():
-        user_id = request.args.get("user_id", "")
+        user_id = request.args.get("user_id", "") or request.user.get("umkm_id", "")
         if not user_id:
-            user_id = request.user.get("umkm_id", "")
-
-        if not user_id:
-            return error_response(
-                "Parameter user_id wajib diisi",
-                400,
-                {"contoh": "/api/umkm_insight/ambil_data_transaksi?user_id=UMKM001"},
-            )
+            return error_response("Parameter user_id wajib diisi", 400, {"contoh": "/api/umkm_insight/ambil_data_transaksi?user_id=UMKM001"})
 
         transactions = get_transactions(user_id)
-        if not transactions:
-            return error_response(f"Tidak ada data untuk user_id: {user_id}", 404)
+        subscription = check_subscription_expiry(request.user["id"])
+        package_name = subscription.get("package_name", "free")
+        visible_transactions = transactions
+        if package_name == "free":
+            visible_transactions = []
+        elif package_name == "basic":
+            visible_transactions = sorted(transactions, key=lambda item: parse_rfc3339(item["date"]), reverse=True)[:5]
 
         return jsonify(
             {
@@ -131,28 +252,25 @@ def create_app() -> Flask:
                 "source": "SmartBank (via API Gateway)",
                 "mode": "READ-ONLY",
                 "user_id": user_id,
-                "total_records": len(transactions),
-                "data": transactions,
+                "package_name": package_name,
+                "total_records": len(visible_transactions),
+                "data": visible_transactions,
+                "message": "Belum ada transaksi SmartBank untuk user ini." if not transactions else "Data transaksi berhasil dimuat.",
             }
         )
 
     @app.get("/api/umkm_insight/analisis_penjualan")
     @require_auth
     def analisis_penjualan():
-        user_id = request.args.get("user_id", "")
+        user_id = request.args.get("user_id", "") or request.user.get("umkm_id", "")
         if not user_id:
-            user_id = request.user.get("umkm_id", "")
-
-        if not user_id:
-            return error_response(
-                "Parameter user_id wajib diisi",
-                400,
-                {"contoh": "/api/umkm_insight/analisis_penjualan?user_id=UMKM001"},
-            )
+            return error_response("Parameter user_id wajib diisi", 400, {"contoh": "/api/umkm_insight/analisis_penjualan?user_id=UMKM001"})
 
         transactions = get_transactions(user_id)
-        if not transactions:
-            return error_response(f"Tidak ada data untuk user_id: {user_id}", 404)
+        subscription = check_subscription_expiry(request.user["id"])
+        base_analytics = analisis_lengkap(transactions) if transactions else empty_analytics("Belum ada transaksi SmartBank yang bisa dianalisis.")
+        analisis = enrich_analytics(base_analytics, subscription)
+        analisis = limit_dashboard_by_package(analisis, subscription.get("package_name", "free"))
 
         return jsonify(
             {
@@ -161,71 +279,39 @@ def create_app() -> Flask:
                 "source": "SmartBank (via API Gateway)",
                 "mode": "READ-ONLY",
                 "user_id": user_id,
-                "analisis": analisis_lengkap(transactions),
+                "subscription": subscription,
+                "analisis": analisis,
+                "meta": {"total_records": len(transactions), "empty_state": not transactions},
             }
         )
 
     @app.get("/api/umkm_insight/dashboard")
     @require_auth
     def dashboard():
-        user_id = request.args.get("user_id", "")
+        user_id = request.args.get("user_id", "") or request.user.get("umkm_id", "")
         if not user_id:
-            user_id = request.user.get("umkm_id", "")
+            return error_response("Parameter user_id wajib diisi", 400, {"contoh": "/api/umkm_insight/dashboard?user_id=UMKM001"})
 
-        if not user_id:
-            return error_response(
-                "Parameter user_id wajib diisi",
-                400,
-                {"contoh": "/api/umkm_insight/dashboard?user_id=UMKM001"},
-            )
-
-        # Ambil profil dari SmartBank (READ-ONLY)
         smartbank_user = get_smartbank_user_profile(user_id)
+        subscription = check_subscription_expiry(request.user["id"])
+        package_name = subscription.get("package_name", "free")
+        transactions = get_transactions(user_id)
 
-        # Cek subscription dari Supabase dengan validasi expiry
-        # LOGIKA: jika tanggal sekarang > expired_date → auto-downgrade ke Free
-        auth_user_id = request.user.get("id")
-        subscription = check_subscription_expiry(auth_user_id)
-        is_premium = subscription["status"] == "premium"
+        recent_transactions = sorted(transactions, key=lambda item: parse_rfc3339(item["date"]), reverse=True)[:10]
+        if package_name == "free":
+            recent_transactions = []
+        elif package_name == "basic":
+            recent_transactions = recent_transactions[:5]
 
-        # Gabungkan profil SmartBank + subscription internal
+        base_analytics = analisis_lengkap(transactions) if transactions else empty_analytics("Belum ada transaksi SmartBank yang masuk untuk UMKM ini.")
+        analisis = enrich_analytics(base_analytics, subscription)
+        analisis = limit_dashboard_by_package(analisis, package_name)
+
         user_data = {
             "user_id": user_id,
             "nama": smartbank_user["nama"] if smartbank_user else request.user.get("email", "User"),
             "subscription": subscription,
         }
-
-        transactions = get_transactions(user_id)
-        if not transactions:
-            return error_response(f"Tidak ada data transaksi untuk user: {user_id}", 404)
-
-        recent_transactions = sorted(
-            transactions,
-            key=lambda item: parse_rfc3339(item["date"]),
-            reverse=True,
-        )[:10]
-
-        analisis = analisis_lengkap(transactions)
-
-        # === PEMBATASAN FITUR BERDASARKAN SUBSCRIPTION ===
-        # Free user: hanya ringkasan (summary cards)
-        # Premium user: semua fitur (grafik, insight, breakdown fee, data transaksi)
-        if not is_premium:
-            analisis = {
-                "ringkasan": analisis["ringkasan"],
-                "tren_bulanan": [],
-                "performa_per_sumber": [],
-                "distribusi_tipe": {},
-                "breakdown_fee": {"fee_marketplace": 0, "fee_pos": 0, "fee_supplier": 0, "fee_logistik": 0, "fee_bank": 0, "fee_gateway": 0, "pajak": 0, "total": 0},
-                "insights": [
-                    {
-                        "type": "warning",
-                        "icon": "🔒",
-                        "message": "Upgrade ke Premium untuk melihat grafik detail, insight bisnis, dan breakdown fee & pajak.",
-                    }
-                ],
-            }
-            recent_transactions = []
 
         return jsonify(
             {
@@ -233,25 +319,21 @@ def create_app() -> Flask:
                 "endpoint": "/umkm_insight/dashboard",
                 "source": "SmartBank (via API Gateway)",
                 "mode": "READ-ONLY",
-                "is_premium": is_premium,
+                "package_name": package_name,
                 "user": user_data,
                 "analisis": analisis,
                 "transaksi_terbaru": recent_transactions,
-                "fee_structure": get_fee_structure() if is_premium else {},
-                "meta": {"total_records": len(transactions)},
+                "fee_structure": get_fee_structure() if package_name in {"pro", "enterprise"} else {},
+                "available_packages": get_package_catalog(),
+                "meta": {"total_records": len(transactions), "empty_state": not transactions},
             }
         )
 
     @app.get("/api/umkm_insight/biaya_akses_analytics")
     @require_auth
     def biaya_akses_analytics():
-        user_id = request.args.get("user_id", "")
-        if not user_id:
-            user_id = request.user.get("umkm_id", "")
-
-        # Cek subscription dengan validasi expiry otomatis
-        auth_user_id = request.user.get("id")
-        subscription = check_subscription_expiry(auth_user_id)
+        user_id = request.args.get("user_id", "") or request.user.get("umkm_id", "")
+        subscription = check_subscription_expiry(request.user["id"])
 
         return jsonify(
             {
@@ -259,32 +341,16 @@ def create_app() -> Flask:
                 "endpoint": "/umkm_insight/biaya_akses_analytics",
                 "mode": "READ-ONLY (Simulasi SaaS)",
                 "user_id": user_id,
-                "subscription": {
-                    "current_status": subscription["status"],
-                    "biaya": "Rp10.000/minggu",
-                    "biaya_numerik": 10000,
-                    "periode": "mingguan",
-                    "started_at": subscription.get("started_at"),
-                    "expired_at": subscription.get("expired_at"),
-                    "fitur_premium": [
-                        "Dashboard lengkap dengan semua grafik",
-                        "Analisis tren penjualan detail",
-                        "Insight bisnis otomatis",
-                        "Breakdown fee & pajak",
-                        "Export laporan (coming soon)",
-                    ],
-                },
-                "catatan": "Pembayaran diproses melalui SmartBank. UMKM Insight hanya membaca status.",
+                "subscription": subscription,
+                "packages": get_package_catalog(),
+                "catatan": "Pembayaran langganan selalu diproses oleh SmartBank. UMKM Insight hanya menerima status pembayaran.",
             }
         )
 
     @app.get("/api/umkm_insight/user_profile")
     @require_auth
     def user_profile():
-        user_id = request.args.get("user_id", "")
-        if not user_id:
-            user_id = request.user.get("umkm_id", "")
-
+        user_id = request.args.get("user_id", "") or request.user.get("umkm_id", "")
         if not user_id:
             return error_response("Parameter user_id wajib diisi", 400)
 
@@ -292,13 +358,6 @@ def create_app() -> Flask:
         if not user:
             return error_response(f"User tidak ditemukan: {user_id}", 404)
 
-        return jsonify(
-            {
-                "status": "success",
-                "source": "SmartBank (via API Gateway)",
-                "mode": "READ-ONLY",
-                "data": user,
-            }
-        )
+        return jsonify({"status": "success", "source": "SmartBank (via API Gateway)", "mode": "READ-ONLY", "data": user})
 
     return app

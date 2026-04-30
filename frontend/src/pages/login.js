@@ -1,6 +1,4 @@
-import { escapeHtml } from '../utils.js'
-
-export function renderLoginPage(onLogin, onGoRegister) {
+export function renderLoginPage() {
   return `
     <div class="auth-page">
       <div class="auth-card">

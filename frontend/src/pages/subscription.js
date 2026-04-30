@@ -1,8 +1,9 @@
-import { escapeHtml, formatRupiah } from '../utils.js'
+import { durationLabel, escapeHtml, formatRupiah, packageLabel } from '../utils.js'
 
-export function renderSubscriptionPage(user) {
+export function renderSubscriptionPage(user, packages = []) {
   const subscription = user?.subscription || {}
-  const isPremium = subscription.status === 'premium'
+  const currentPackage = subscription.package_name || 'free'
+  const currentDuration = subscription.duration || 'mingguan'
   const expiredAt = subscription.expired_at
     ? new Date(subscription.expired_at).toLocaleDateString('id-ID', {
         day: '2-digit',
@@ -14,77 +15,65 @@ export function renderSubscriptionPage(user) {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>💳 Langganan & Paket</h2>
-        <p>Kelola paket langganan UMKM Insight Anda</p>
+        <h2>💳 Paket Langganan</h2>
+        <p>Pilih paket SaaS UMKM Insight. Pembayaran tetap diproses oleh SmartBank.</p>
       </div>
 
-      ${
-        isPremium
-          ? `
-            <div class="sub-current-card sub-premium">
-              <div class="sub-current-icon">⭐</div>
-              <div class="sub-current-info">
-                <h3>Status: Premium</h3>
-                <p>Aktif sampai: <strong>${expiredAt}</strong></p>
-              </div>
-            </div>
-          `
-          : `
-            <div class="sub-current-card sub-free">
-              <div class="sub-current-icon">🆓</div>
-              <div class="sub-current-info">
-                <h3>Status: Free</h3>
-                <p>Upgrade ke Premium untuk fitur lengkap</p>
-              </div>
-            </div>
-          `
-      }
+      <div class="sub-current-card ${subscription.status === 'active' ? 'sub-premium' : 'sub-free'}">
+        <div class="sub-current-icon">${currentPackage === 'free' ? '🆓' : '⭐'}</div>
+        <div class="sub-current-info">
+          <h3>${packageLabel(currentPackage)} • ${subscription.status === 'active' ? 'Aktif' : 'Inactive'}</h3>
+          <p>Durasi: <strong>${durationLabel(currentDuration)}</strong></p>
+          <p>Berlaku sampai: <strong>${expiredAt}</strong></p>
+        </div>
+      </div>
 
       <div class="pricing-grid">
-        <div class="pricing-card ${!isPremium ? 'pricing-active' : ''}">
-          <div class="pricing-header">
-            <h3>Free</h3>
-            <div class="pricing-price">Rp 0</div>
-            <p class="pricing-period">Selamanya</p>
-          </div>
-          <ul class="pricing-features">
-            <li>✅ Dashboard ringkasan</li>
-            <li>✅ 4 kartu ringkasan</li>
-            <li>❌ Grafik detail</li>
-            <li>❌ Insight bisnis otomatis</li>
-            <li>❌ Breakdown fee & pajak</li>
-            <li>❌ Data transaksi lengkap</li>
-          </ul>
-          ${!isPremium ? '<div class="pricing-badge">Paket Saat Ini</div>' : ''}
-        </div>
+        ${packages
+          .map((pkg) => {
+            const isCurrent = currentPackage === pkg.code
+            const weekly = formatRupiah(pkg.prices.mingguan)
+            const monthly = formatRupiah(pkg.prices.bulanan)
+            const yearly = formatRupiah(pkg.prices.tahunan)
 
-        <div class="pricing-card pricing-featured ${isPremium ? 'pricing-active' : ''}">
-          <div class="pricing-ribbon">RECOMMENDED</div>
-          <div class="pricing-header">
-            <h3>Premium</h3>
-            <div class="pricing-price">Rp 10.000</div>
-            <p class="pricing-period">per minggu</p>
-          </div>
-          <ul class="pricing-features">
-            <li>✅ Dashboard lengkap</li>
-            <li>✅ Semua grafik & chart</li>
-            <li>✅ Insight bisnis otomatis</li>
-            <li>✅ Breakdown fee & pajak</li>
-            <li>✅ Data transaksi lengkap</li>
-            <li>✅ Analisis tren detail</li>
-          </ul>
-          ${
-            isPremium
-              ? '<div class="pricing-badge">Paket Saat Ini</div>'
-              : '<button class="pricing-btn" id="upgrade-btn">⚡ Upgrade Sekarang</button>'
-          }
-        </div>
+            return `
+              <div class="pricing-card ${pkg.code === 'pro' ? 'pricing-featured' : ''} ${isCurrent ? 'pricing-active' : ''}">
+                ${pkg.code === 'pro' ? '<div class="pricing-ribbon">RECOMMENDED</div>' : ''}
+                <div class="pricing-header">
+                  <h3>${escapeHtml(pkg.label)}</h3>
+                  <div class="pricing-price">${weekly}</div>
+                  <p class="pricing-period">Mulai dari mingguan</p>
+                </div>
+                <p class="pricing-description">${escapeHtml(pkg.description)}</p>
+                <div class="duration-switcher">
+                  <label><input type="radio" name="duration-${pkg.code}" value="mingguan" ${currentDuration === 'mingguan' ? 'checked' : ''}> Mingguan</label>
+                  <label><input type="radio" name="duration-${pkg.code}" value="bulanan" ${currentDuration === 'bulanan' ? 'checked' : ''}> Bulanan</label>
+                  <label><input type="radio" name="duration-${pkg.code}" value="tahunan" ${currentDuration === 'tahunan' ? 'checked' : ''}> Tahunan</label>
+                </div>
+                <div class="pricing-rates">
+                  <span>Mingguan: <strong>${weekly}</strong></span>
+                  <span>Bulanan: <strong>${monthly}</strong></span>
+                  <span>Tahunan: <strong>${yearly}</strong></span>
+                </div>
+                <ul class="pricing-features">
+                  ${pkg.features.map((feature) => `<li>✅ ${escapeHtml(feature)}</li>`).join('')}
+                </ul>
+                ${
+                  isCurrent
+                    ? '<div class="pricing-badge">Paket Saat Ini</div>'
+                    : pkg.code === 'free'
+                      ? '<div class="pricing-badge">Paket Default</div>'
+                      : `<button class="pricing-btn" data-package="${pkg.code}">Pilih Paket</button>`
+                }
+              </div>
+            `
+          })
+          .join('')}
       </div>
 
       <div class="sub-info-note">
-        <p>🔒 <strong>Catatan Keamanan:</strong> Pembayaran diproses sepenuhnya oleh SmartBank. 
-        UMKM Insight tidak menyimpan data kartu atau memproses uang secara langsung.</p>
-        <p>📋 Flow: User → UMKM Insight → SmartBank → Response → UMKM Insight</p>
+        <p>🔒 <strong>Aturan Read-Only:</strong> UMKM Insight tidak memproses uang, tidak menyimpan saldo, dan tidak memiliki payment system internal.</p>
+        <p>🏦 Flow resmi: User → UMKM Insight → SmartBank → Response → Update status langganan.</p>
       </div>
 
       <div id="payment-result" class="hidden"></div>
@@ -93,38 +82,41 @@ export function renderSubscriptionPage(user) {
 }
 
 export function attachSubscriptionEvents(onUpgrade) {
-  const upgradeBtn = document.getElementById('upgrade-btn')
-  if (upgradeBtn) {
-    upgradeBtn.addEventListener('click', async () => {
+  document.querySelectorAll('[data-package]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const packageName = button.dataset.package
+      const selectedDuration = document.querySelector(`input[name="duration-${packageName}"]:checked`)?.value || 'mingguan'
       const resultEl = document.getElementById('payment-result')
-      upgradeBtn.disabled = true
-      upgradeBtn.textContent = '⏳ Memproses pembayaran...'
+
+      button.disabled = true
+      button.textContent = '⏳ Menghubungkan ke SmartBank...'
 
       try {
-        const result = await onUpgrade()
+        const result = await onUpgrade(packageName, selectedDuration)
         resultEl.innerHTML = `
           <div class="payment-success">
             <span class="payment-success-icon">✅</span>
-            <h3>Pembayaran Berhasil!</h3>
+            <h3>Pembayaran SmartBank Berhasil</h3>
             <p>Ref: ${escapeHtml(result.smartbank_response?.ref || '-')}</p>
-            <p>Status langganan berhasil diupgrade ke <strong>Premium</strong>.</p>
-            <p>Halaman akan dimuat ulang...</p>
+            <p>Paket aktif: <strong>${escapeHtml(result.subscription?.package_label || packageLabel(result.subscription?.package_name || packageName))}</strong></p>
+            <p>Durasi: <strong>${escapeHtml(durationLabel(result.subscription?.duration || selectedDuration))}</strong></p>
+            <p>Dashboard akan dimuat ulang...</p>
           </div>
         `
         resultEl.classList.remove('hidden')
-        setTimeout(() => window.location.reload(), 2000)
+        setTimeout(() => window.location.reload(), 1800)
       } catch (err) {
         resultEl.innerHTML = `
           <div class="payment-error">
             <span class="payment-error-icon">❌</span>
-            <h3>Pembayaran Gagal</h3>
+            <h3>Permintaan ke SmartBank Gagal</h3>
             <p>${escapeHtml(err.message || 'Terjadi kesalahan')}</p>
           </div>
         `
         resultEl.classList.remove('hidden')
-        upgradeBtn.disabled = false
-        upgradeBtn.textContent = '⚡ Upgrade Sekarang'
+        button.disabled = false
+        button.textContent = 'Pilih Paket'
       }
     })
-  }
+  })
 }

@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -6,16 +8,17 @@ from app import create_app
 
 
 app = create_app()
+PORT = int(os.getenv("PORT", "8080"))
 
 
 if __name__ == "__main__":
     print("")
     print("==============================================")
-    print("         UMKM Insight Server v3.0")
+    print("         UMKM Insight Server v4.0")
     print("         Sistem Analitik Read-Only + SaaS")
     print("==============================================")
-    print("  Backend  : http://localhost:8080")
-    print("  Database : Supabase (PostgreSQL)")
+    print(f"  Backend  : http://localhost:{PORT}")
+    print("  Database : MySQL (XAMPP)")
     print("  Mode     : READ-ONLY (transaksi keuangan)")
     print("  Source   : SmartBank (Dummy Data)")
     print("  Lang     : Python + Flask Framework")
@@ -28,9 +31,11 @@ if __name__ == "__main__":
     print("  GET  /api/umkm_insight/ambil_data_transaksi")
     print("  GET  /api/umkm_insight/analisis_penjualan")
     print("  GET  /api/umkm_insight/biaya_akses_analytics")
+    print("  GET  /api/subscriptions/packages")
     print("  GET  /api/smartbank/pay")
+    print("  POST /api/smartbank/report-decline")
     print("  GET  /api/admin/users")
     print("  GET  /api/admin/stats")
     print("==============================================")
     print("")
-    app.run(host="0.0.0.0", port=8080, debug=False)
+    app.run(host="0.0.0.0", port=PORT, debug=False)

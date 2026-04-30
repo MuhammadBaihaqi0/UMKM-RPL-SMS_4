@@ -31,6 +31,11 @@ export async function apiPost(url, data) {
   return response.data
 }
 
+export async function apiPut(url, data) {
+  const response = await axios.put(url, data, { headers: authHeaders() })
+  return response.data
+}
+
 // ============================================
 // Format Helpers
 // ============================================
@@ -68,4 +73,23 @@ export function sectionTitle(section) {
     admin: 'Admin Panel',
   }
   return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)
+}
+
+export function packageLabel(packageName) {
+  const labels = {
+    free: 'Free',
+    basic: 'Basic',
+    pro: 'Pro',
+    enterprise: 'Enterprise',
+  }
+  return labels[packageName] || packageName
+}
+
+export function durationLabel(duration) {
+  const labels = {
+    mingguan: 'Mingguan',
+    bulanan: 'Bulanan',
+    tahunan: 'Tahunan',
+  }
+  return labels[duration] || '-'
 }

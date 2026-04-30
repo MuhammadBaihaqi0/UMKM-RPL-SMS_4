@@ -1,103 +1,120 @@
 from __future__ import annotations
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
-from .middleware import require_admin
-from .supabase_client import get_supabase
+from .db import fetch_all, fetch_one
+from .middleware import require_admin_or_operator
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
 @admin_bp.get("/users")
-@require_admin
+@require_admin_or_operator
 def get_all_users():
-    """Admin: Daftar semua user + status langganan."""
-    sb = get_supabase()
+    status_filter = (request.args.get("status") or "").strip().lower()
+    package_filter = (request.args.get("package") or "").strip().lower()
 
-    users_result = (
-        sb.table("users")
-        .select("id, nama_umkm, email, role, umkm_id, created_at")
-        .order("created_at", desc=False)
-        .execute()
+    conditions = []
+    params: list[str] = []
+    if status_filter:
+        conditions.append("COALESCE(s.status, 'active') = %s")
+        params.append(status_filter)
+    if package_filter:
+        conditions.append("COALESCE(s.package_name, 'free') = %s")
+        params.append(package_filter)
+
+    where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+    rows = fetch_all(
+        f"""
+        SELECT
+            u.id,
+            u.nama_umkm,
+            u.email,
+            u.role,
+            u.umkm_id,
+            u.created_at,
+            COALESCE(s.package_name, 'free') AS package_name,
+            COALESCE(s.status, 'active') AS subscription_status,
+            COALESCE(s.amount_paid, s.biaya, 0) AS subscription_amount,
+            COALESCE(s.duration, s.periode) AS subscription_duration,
+            COALESCE(s.start_date, s.started_at) AS subscription_start_date,
+            COALESCE(s.expired_date, s.expired_at) AS subscription_expired_date,
+            al.action AS last_action,
+            al.detail AS last_detail,
+            al.created_at AS last_created_at
+        FROM users u
+        LEFT JOIN subscriptions s ON s.user_id = u.id
+        LEFT JOIN activity_logs al ON al.id = (
+            SELECT id FROM activity_logs WHERE user_id = u.id ORDER BY created_at DESC LIMIT 1
+        )
+        {where_clause}
+        ORDER BY u.created_at ASC
+        """,
+        tuple(params),
     )
 
-    users = []
-    for user in users_result.data:
-        # Ambil subscription untuk setiap user
-        sub_result = (
-            sb.table("subscriptions")
-            .select("status, biaya, periode, started_at, expired_at")
-            .eq("user_id", user["id"])
-            .execute()
-        )
-        subscription = (
-            sub_result.data[0]
-            if sub_result.data
-            else {"status": "free", "biaya": 0, "expired_at": None}
-        )
-
-        # Ambil aktivitas terakhir
-        activity_result = (
-            sb.table("activity_logs")
-            .select("action, detail, created_at")
-            .eq("user_id", user["id"])
-            .order("created_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-        last_activity = activity_result.data[0] if activity_result.data else None
-
-        users.append(
-            {**user, "subscription": subscription, "last_activity": last_activity}
-        )
+    users = [
+        {
+            "id": row["id"],
+            "nama_umkm": row["nama_umkm"],
+            "email": row["email"],
+            "role": row["role"],
+            "umkm_id": row["umkm_id"],
+            "created_at": row["created_at"],
+            "subscription": {
+                "package_name": row["package_name"],
+                "status": row["subscription_status"],
+                "amount_paid": row["subscription_amount"],
+                "duration": row["subscription_duration"],
+                "started_at": row["subscription_start_date"],
+                "expired_at": row["subscription_expired_date"],
+            },
+            "last_activity": (
+                {
+                    "action": row["last_action"],
+                    "detail": row["last_detail"],
+                    "created_at": row["last_created_at"],
+                }
+                if row["last_action"]
+                else None
+            ),
+        }
+        for row in rows
+    ]
 
     return jsonify({"status": "success", "data": users, "total": len(users)})
 
 
 @admin_bp.get("/stats")
-@require_admin
+@require_admin_or_operator
 def get_stats():
-    """Admin: Statistik ringkasan platform."""
-    sb = get_supabase()
-
-    # Total users
-    users_result = sb.table("users").select("id", count="exact").execute()
-    total_users = users_result.count or 0
-
-    # Total admins
-    admin_result = (
-        sb.table("users").select("id", count="exact").eq("role", "admin").execute()
+    total_users = (fetch_one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0)
+    total_admins = (fetch_one("SELECT COUNT(*) AS total FROM users WHERE role = %s", ("admin",)) or {}).get("total", 0)
+    total_operators = (fetch_one("SELECT COUNT(*) AS total FROM users WHERE role = %s", ("operator",)) or {}).get("total", 0)
+    total_active = (fetch_one("SELECT COUNT(*) AS total FROM subscriptions WHERE status = %s", ("active",)) or {}).get("total", 0)
+    total_revenue = (
+        fetch_one(
+            "SELECT COALESCE(SUM(amount), 0) AS total FROM payment_logs WHERE status = %s",
+            ("success",),
+        )
+        or {}
+    ).get("total", 0)
+    package_breakdown = fetch_all(
+        """
+        SELECT COALESCE(package_name, 'free') AS package_name, COUNT(*) AS total
+        FROM subscriptions
+        GROUP BY COALESCE(package_name, 'free')
+        ORDER BY total DESC
+        """
     )
-    total_admins = admin_result.count or 0
-
-    # Premium users
-    premium_result = (
-        sb.table("subscriptions")
-        .select("id", count="exact")
-        .eq("status", "premium")
-        .execute()
-    )
-    total_premium = premium_result.count or 0
-
-    # Free users
-    total_free = total_users - total_admins - total_premium
-
-    # Total revenue from payment logs
-    payments_result = (
-        sb.table("payment_logs")
-        .select("amount")
-        .eq("status", "success")
-        .execute()
-    )
-    total_revenue = sum(p["amount"] for p in payments_result.data) if payments_result.data else 0
-
-    # Recent activities
-    recent_result = (
-        sb.table("activity_logs")
-        .select("user_id, action, detail, created_at")
-        .order("created_at", desc=True)
-        .limit(10)
-        .execute()
+    recent_activities = fetch_all(
+        """
+        SELECT user_id, action, detail, created_at
+        FROM activity_logs
+        ORDER BY created_at DESC
+        LIMIT 10
+        """
     )
 
     return jsonify(
@@ -106,10 +123,11 @@ def get_stats():
             "stats": {
                 "total_users": total_users,
                 "total_admins": total_admins,
-                "total_premium": total_premium,
-                "total_free": max(0, total_free),
+                "total_operators": total_operators,
+                "total_active_subscriptions": total_active,
                 "total_revenue": total_revenue,
+                "package_breakdown": package_breakdown,
             },
-            "recent_activities": recent_result.data,
+            "recent_activities": recent_activities,
         }
     )

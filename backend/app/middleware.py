@@ -5,7 +5,7 @@ from functools import wraps
 import jwt
 from flask import jsonify, request
 
-from .supabase_client import JWT_SECRET
+from .db import JWT_SECRET
 
 
 def require_auth(func):
@@ -39,9 +39,23 @@ def require_admin(func):
     def decorated(*args, **kwargs):
         if request.user.get("role") != "admin":
             return (
-                jsonify(
-                    {"status": "error", "message": "Akses ditolak. Hanya admin."}
-                ),
+                jsonify({"status": "error", "message": "Akses ditolak. Hanya admin."}),
+                403,
+            )
+        return func(*args, **kwargs)
+
+    return decorated
+
+
+def require_admin_or_operator(func):
+    """Middleware: memastikan user memiliki role admin atau operator."""
+
+    @wraps(func)
+    @require_auth
+    def decorated(*args, **kwargs):
+        if request.user.get("role") not in {"admin", "operator"}:
+            return (
+                jsonify({"status": "error", "message": "Akses ditolak. Hanya admin atau operator."}),
                 403,
             )
         return func(*args, **kwargs)

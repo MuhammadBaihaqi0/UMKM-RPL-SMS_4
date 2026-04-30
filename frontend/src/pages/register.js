@@ -1,5 +1,3 @@
-import { escapeHtml } from '../utils.js'
-
 export function renderRegisterPage() {
   return `
     <div class="auth-page">
