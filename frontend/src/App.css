@@ -660,14 +660,15 @@ h1, h2, h3, h4, h5, h6, .card-value {
 .sub-current-info p { font-size: 14px; color: var(--text-muted); }
 
 .pricing-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 24px; margin-bottom: 32px;
 }
 .pricing-card {
   background: #fff; border: 2px solid var(--glass-border);
   border-radius: var(--radius); padding: 32px; text-align: center;
-  position: relative; overflow: hidden; transition: var(--transition);
+  position: relative; overflow: visible; transition: var(--transition);
   animation: slideInUp 0.6s ease both;
+  display: flex; flex-direction: column;
 }
 .pricing-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-card); }
 .pricing-card.pricing-featured {
@@ -686,8 +687,8 @@ h1, h2, h3, h4, h5, h6, .card-value {
 .pricing-header { margin-bottom: 24px; }
 .pricing-header h3 { font-size: 24px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px; }
 .pricing-price {
-  font-size: 36px; font-weight: 900; color: var(--primary);
-  font-family: 'Outfit', sans-serif;
+  font-size: 32px; font-weight: 900; color: var(--primary);
+  font-family: 'Outfit', sans-serif; word-break: break-word;
 }
 .pricing-period { font-size: 14px; color: var(--text-muted); }
 
@@ -894,11 +895,18 @@ h1, h2, h3, h4, h5, h6, .card-value {
 .pricing-rates {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 20px;
   text-align: left;
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: #f8fafc;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+}
+.pricing-rates strong {
+  color: var(--primary);
 }
 
 .package-breakdown-grid {

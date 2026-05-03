@@ -31,7 +31,8 @@ export function renderSubscriptionPage(user, packages = []) {
       <div class="pricing-grid">
         ${packages
           .map((pkg) => {
-            const isCurrent = currentPackage === pkg.code
+            const isActive = subscription.status === 'active'
+            const isCurrent = isActive && currentPackage === pkg.code
             const weekly = formatRupiah(pkg.prices.mingguan)
             const monthly = formatRupiah(pkg.prices.bulanan)
             const yearly = formatRupiah(pkg.prices.tahunan)
@@ -63,7 +64,7 @@ export function renderSubscriptionPage(user, packages = []) {
                     ? '<div class="pricing-badge">Paket Saat Ini</div>'
                     : pkg.code === 'free'
                       ? '<div class="pricing-badge">Paket Default</div>'
-                      : `<button class="pricing-btn" data-package="${pkg.code}">Pilih Paket</button>`
+                      : `<button class="pricing-btn" data-package="${pkg.code}">Pilih Paket Ini</button>`
                 }
               </div>
             `
