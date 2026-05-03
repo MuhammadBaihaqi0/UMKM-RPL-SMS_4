@@ -5,7 +5,7 @@ function summaryCards(ringkasan) {
   const cards = [
     { label: 'Total Penjualan', value: ringkasan.total_penjualan, sub: `${ringkasan.jumlah_penjualan} transaksi penjualan`, icon: '💰', cls: 'card-penjualan' },
     { label: 'Total Transaksi', value: ringkasan.jumlah_transaksi, sub: 'semua sumber SmartBank', icon: '📦', cls: 'card-rata-rata', raw: true },
-    { label: 'Rata-rata Penjualan', value: ringkasan.rata_rata_transaksi, sub: 'per transaksi penjualan', icon: '📊', cls: 'card-laba' },
+    { label: 'Rata-rata Penjualan', value: ringkasan.rata_rata_transaksi === null ? '🔒 Premium' : ringkasan.rata_rata_transaksi, sub: ringkasan.rata_rata_transaksi === null ? 'Upgrade ke paket berbayar' : 'per transaksi penjualan', icon: '📊', cls: 'card-laba', raw: ringkasan.rata_rata_transaksi === null },
     { label: 'Total Biaya', value: ringkasan.total_pengeluaran, sub: 'pengeluaran & operasional', icon: '🧾', cls: 'card-pengeluaran' },
   ]
 
@@ -103,7 +103,11 @@ function dashboardSection(analisis, subscription) {
             <span class="chart-badge">Read-Only</span>
           </div>
           <div class="chart-container chart-doughnut-container">
-            <canvas id="distribusi-chart"></canvas>
+            ${
+              Object.keys(analisis.distribusi_tipe || {}).length === 0
+                ? '<div class="locked-chart-overlay"><span>🔒<br>Fitur Tersedia di Paket Pro</span></div>'
+                : '<canvas id="distribusi-chart"></canvas>'
+            }
           </div>
         </div>
         <div class="chart-card chart-large">
@@ -206,6 +210,20 @@ function analisisSection(analisis) {
           </table>
         </div>
       </div>
+      <div class="analisis-card full-width" style="margin-top: 1.5rem;">
+        <h3>🤖 AI Proyeksi Bisnis Bulan Depan</h3>
+        ${
+          analisis.proyeksi_ai
+            ? `<div class="proyeksi-card ${analisis.proyeksi_ai.trend}">
+                 <span class="proyeksi-value">${escapeHtml(analisis.proyeksi_ai.value)}</span>
+                 <p>${escapeHtml(analisis.proyeksi_ai.message)}</p>
+               </div>`
+            : `<div class="proyeksi-card locked" style="text-align:center; padding:2rem; background:rgba(255,255,255,0.03); border-radius:8px; border:1px dashed var(--glass-border);">
+                 <span class="proyeksi-value" style="display:block; font-size:1.5rem; margin-bottom:0.5rem; color:#9ca3af;">🔒 Enterprise Only</span>
+                 <p style="color:#6b7280; margin:0;">Tingkatkan paket ke Enterprise untuk melihat proyeksi tren pendapatan bulan depan berbasis AI.</p>
+               </div>`
+        }
+      </div>
     </section>
   `
 }
@@ -230,6 +248,8 @@ function transactionRows(transactions) {
 }
 
 function transaksiSection(transactions, packageName) {
+  const isBasicOrFree = packageName === 'free' || packageName === 'basic'
+
   return `
     <section class="content-section">
       <div class="section-header">
@@ -239,7 +259,7 @@ function transaksiSection(transactions, packageName) {
       <div class="filter-bar">
         <div class="filter-group">
           <label for="source-filter">Sumber</label>
-          <select id="source-filter" class="filter-select">
+          <select id="source-filter" class="filter-select" ${isBasicOrFree ? 'disabled title="Tersedia di paket Pro"' : ''}>
             <option value="all">Semua</option>
             <option value="Marketplace">Marketplace</option>
             <option value="POS">POS</option>
@@ -249,7 +269,7 @@ function transaksiSection(transactions, packageName) {
         </div>
         <div class="filter-group">
           <label for="type-filter">Tipe</label>
-          <select id="type-filter" class="filter-select">
+          <select id="type-filter" class="filter-select" ${isBasicOrFree ? 'disabled title="Tersedia di paket Pro"' : ''}>
             <option value="all">Semua</option>
             <option value="penjualan">Penjualan</option>
             <option value="pembelian_bahan">Pembelian</option>
@@ -257,7 +277,10 @@ function transaksiSection(transactions, packageName) {
             <option value="subscription">Subscription</option>
           </select>
         </div>
-        <div class="filter-info">Menampilkan <span id="transaction-count">${transactions.length}</span> transaksi</div>
+        <div class="filter-info" style="display:flex; gap:1rem; align-items:center;">
+          <span>Menampilkan <span id="transaction-count">${transactions.length}</span> transaksi</span>
+          <button class="pricing-btn" style="padding:0.4rem 1rem; font-size:0.9rem;" ${isBasicOrFree ? 'disabled title="Tersedia di Paket Pro & Enterprise"' : 'onclick="alert(\'Fitur Export CSV Sedang Dimuat...\')"'}>📥 Export CSV</button>
+        </div>
       </div>
       <div class="table-container">
         <table class="data-table">
