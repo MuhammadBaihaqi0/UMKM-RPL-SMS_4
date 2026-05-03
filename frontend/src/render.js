@@ -426,6 +426,7 @@ export function renderApp(root, state) {
     <div class="app">
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
+      <div class="sidebar-overlay ${state.sidebarOpen ? 'active' : ''}" id="sidebar-overlay"></div>
       ${sidebar(state)}
       <main class="main-content">
         ${header(state.activeSection, state.data.user?.subscription || {})}

@@ -132,6 +132,14 @@ function attachEvents() {
     })
   }
 
+  const overlay = document.getElementById('sidebar-overlay')
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      state.sidebarOpen = false
+      render()
+    })
+  }
+
   const sourceFilter = document.getElementById('source-filter')
   if (sourceFilter) {
     sourceFilter.value = state.sourceFilter
