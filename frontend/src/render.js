@@ -1,3 +1,4 @@
+import { renderApiDocsPage } from './pages/api_docs.js'
 import { renderSubscriptionPage } from './pages/subscription.js'
 import { durationLabel, escapeHtml, formatDate, formatRupiah, packageLabel, sectionTitle } from './utils.js'
 
@@ -363,6 +364,7 @@ function sidebar(state) {
     { key: 'transaksi', icon: '📋', label: 'Transaksi' },
     { key: 'insights', icon: '💡', label: 'Insights' },
     { key: 'subscription', icon: '💳', label: 'Langganan' },
+    { key: 'api_docs', icon: '🔗', label: 'API Docs' },
   ]
 
   if (isAdmin || isOperator) {
@@ -441,6 +443,7 @@ function mainSection(state) {
   if (state.activeSection === 'transaksi') return transaksiSection(state.filteredTransactions, packageName)
   if (state.activeSection === 'insights') return insightsSection(analisis, user)
   if (state.activeSection === 'subscription') return renderSubscriptionPage(user, state.availablePackages || [])
+  if (state.activeSection === 'api_docs') return renderApiDocsPage()
   return dashboardSection(analisis, user.subscription || {})
 }
 

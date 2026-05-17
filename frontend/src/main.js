@@ -1,6 +1,7 @@
 import './App.css'
 import { destroyCharts, renderCharts } from './charts.js'
 import { renderAdminPage } from './pages/admin.js'
+import { attachApiDocsEvents } from './pages/api_docs.js'
 import { attachLoginEvents, renderLoginPage } from './pages/login.js'
 import { attachRegisterEvents, renderRegisterPage } from './pages/register.js'
 import { attachSubscriptionEvents } from './pages/subscription.js'
@@ -162,6 +163,10 @@ function attachEvents() {
 
   if (state.activeSection === 'subscription') {
     attachSubscriptionEvents(handleUpgrade)
+  }
+
+  if (state.activeSection === 'api_docs') {
+    attachApiDocsEvents()
   }
 
   const reportButton = document.getElementById('report-smartbank-btn')

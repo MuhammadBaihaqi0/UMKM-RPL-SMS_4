@@ -70,6 +70,7 @@ export function sectionTitle(section) {
     transaksi: 'Data Transaksi',
     insights: 'Insights',
     subscription: 'Langganan',
+    api_docs: 'API Documentation',
     admin: 'Admin Panel',
   }
   return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)
