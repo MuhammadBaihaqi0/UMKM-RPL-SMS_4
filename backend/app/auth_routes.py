@@ -49,6 +49,10 @@ def register():
     email = data.get("email", "").strip().lower()
     password = data.get("password", "")
     role = (data.get("role") or "user").strip().lower()
+    npwp = (data.get("npwp") or "").strip() or None
+    kategori_id = data.get("kategori_id")
+    alamat = (data.get("alamat") or "").strip() or None
+    no_telp = (data.get("no_telp") or "").strip() or None
 
     if not nama_umkm or not email or not password:
         return jsonify({"status": "error", "message": "nama_umkm, email, dan password wajib diisi"}), 400
@@ -58,6 +62,13 @@ def register():
 
     if len(password) < 6:
         return jsonify({"status": "error", "message": "Password minimal 6 karakter"}), 400
+
+    # Validate kategori_id if provided
+    if kategori_id is not None:
+        try:
+            kategori_id = int(kategori_id)
+        except (ValueError, TypeError):
+            kategori_id = None
 
     with get_cursor() as (connection, cursor):
         cursor.execute("SELECT id FROM users WHERE email = %s LIMIT 1", (email,))
@@ -100,12 +111,23 @@ def register():
                 now,
             ),
         )
+
+        # Auto-insert UMKM Profile (Revisi Dosen: data UMKM langsung dimasukkan saat register)
+        if role == "user":
+            cursor.execute(
+                """
+                INSERT INTO umkm_profiles (id, user_id, kategori_id, npwp, alamat, no_telp, business_health_score, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (generate_uuid(), user_id, kategori_id, npwp, alamat, no_telp, 0, now, now),
+            )
+
         log_activity(
             cursor,
             user_id,
             "register",
             f"User {nama_umkm} mendaftar dengan email {email}",
-            {"role": role, "umkm_id": umkm_id},
+            {"role": role, "umkm_id": umkm_id, "npwp": npwp, "kategori_id": kategori_id},
             now,
         )
         connection.commit()

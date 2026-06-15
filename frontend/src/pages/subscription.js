@@ -37,19 +37,22 @@ export function renderSubscriptionPage(user, packages = []) {
             const monthly = formatRupiah(pkg.prices.bulanan)
             const yearly = formatRupiah(pkg.prices.tahunan)
 
+            const initialPrice = currentDuration === 'bulanan' ? monthly : currentDuration === 'tahunan' ? yearly : weekly;
+            const initialPeriod = currentDuration === 'bulanan' ? 'Per bulan' : currentDuration === 'tahunan' ? 'Per tahun' : 'Mulai dari mingguan';
+
             return `
               <div class="pricing-card ${pkg.code === 'pro' ? 'pricing-featured' : ''} ${isCurrent ? 'pricing-active' : ''}">
                 ${pkg.code === 'pro' ? '<div class="pricing-ribbon">RECOMMENDED</div>' : ''}
                 <div class="pricing-header">
                   <h3>${escapeHtml(pkg.label)}</h3>
-                  <div class="pricing-price">${weekly}</div>
-                  <p class="pricing-period">Mulai dari mingguan</p>
+                  <div class="pricing-price" id="price-display-${pkg.code}">${initialPrice}</div>
+                  <p class="pricing-period" id="period-display-${pkg.code}">${initialPeriod}</p>
                 </div>
                 <p class="pricing-description">${escapeHtml(pkg.description)}</p>
                 <div class="duration-switcher">
-                  <label><input type="radio" name="duration-${pkg.code}" value="mingguan" ${currentDuration === 'mingguan' ? 'checked' : ''}> Mingguan</label>
-                  <label><input type="radio" name="duration-${pkg.code}" value="bulanan" ${currentDuration === 'bulanan' ? 'checked' : ''}> Bulanan</label>
-                  <label><input type="radio" name="duration-${pkg.code}" value="tahunan" ${currentDuration === 'tahunan' ? 'checked' : ''}> Tahunan</label>
+                  <label><input type="radio" class="duration-radio" data-pkg="${pkg.code}" data-price-mingguan="${weekly}" data-price-bulanan="${monthly}" data-price-tahunan="${yearly}" name="duration-${pkg.code}" value="mingguan" ${currentDuration === 'mingguan' ? 'checked' : ''}> Mingguan</label>
+                  <label><input type="radio" class="duration-radio" data-pkg="${pkg.code}" data-price-mingguan="${weekly}" data-price-bulanan="${monthly}" data-price-tahunan="${yearly}" name="duration-${pkg.code}" value="bulanan" ${currentDuration === 'bulanan' ? 'checked' : ''}> Bulanan</label>
+                  <label><input type="radio" class="duration-radio" data-pkg="${pkg.code}" data-price-mingguan="${weekly}" data-price-bulanan="${monthly}" data-price-tahunan="${yearly}" name="duration-${pkg.code}" value="tahunan" ${currentDuration === 'tahunan' ? 'checked' : ''}> Tahunan</label>
                 </div>
                 <div class="pricing-rates">
                   <span>Mingguan: <strong>${weekly}</strong></span>
@@ -83,6 +86,29 @@ export function renderSubscriptionPage(user, packages = []) {
 }
 
 export function attachSubscriptionEvents(onUpgrade) {
+  // Handle radio change to update price display dynamically
+  document.querySelectorAll('.duration-radio').forEach((radio) => {
+    radio.addEventListener('change', (e) => {
+      const pkgCode = e.target.dataset.pkg
+      const duration = e.target.value
+      const priceDisplay = document.getElementById(`price-display-${pkgCode}`)
+      const periodDisplay = document.getElementById(`period-display-${pkgCode}`)
+      
+      if (priceDisplay && periodDisplay) {
+        if (duration === 'mingguan') {
+          priceDisplay.textContent = e.target.dataset.priceMingguan
+          periodDisplay.textContent = 'Mulai dari mingguan'
+        } else if (duration === 'bulanan') {
+          priceDisplay.textContent = e.target.dataset.priceBulanan
+          periodDisplay.textContent = 'Per bulan'
+        } else if (duration === 'tahunan') {
+          priceDisplay.textContent = e.target.dataset.priceTahunan
+          periodDisplay.textContent = 'Per tahun'
+        }
+      }
+    })
+  })
+
   document.querySelectorAll('[data-package]').forEach((button) => {
     button.addEventListener('click', async () => {
       const packageName = button.dataset.package

@@ -72,6 +72,10 @@ export function sectionTitle(section) {
     subscription: 'Langganan',
     api_docs: 'API Documentation',
     admin: 'Admin Panel',
+    bantuan: 'Pusat Bantuan',
+    operator_panel: 'Dashboard Operator',
+    notifikasi: 'Notifikasi',
+    user_management: 'Kelola User',
   }
   return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)
 }

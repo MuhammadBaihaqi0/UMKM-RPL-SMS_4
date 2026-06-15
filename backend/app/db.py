@@ -222,6 +222,115 @@ def ensure_schema():
             """
         )
 
+        # --- Kategori Usaha ---
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS kategori_usaha (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              nama_kategori VARCHAR(100) NOT NULL UNIQUE,
+              deskripsi TEXT NULL,
+              icon VARCHAR(10) NULL DEFAULT '🏪',
+              created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        cursor.execute("SELECT COUNT(*) AS total FROM kategori_usaha")
+        if cursor.fetchone()[0] == 0:
+            cursor.executemany(
+                "INSERT IGNORE INTO kategori_usaha (id, nama_kategori, deskripsi, icon) VALUES (%s, %s, %s, %s)",
+                [
+                    (1, "Kuliner", "Usaha makanan, minuman, catering, dan restoran", "🍽️"),
+                    (2, "Fashion", "Pakaian, aksesoris, dan produk fashion", "👗"),
+                    (3, "Elektronik", "Perangkat elektronik, gadget, dan aksesoris", "📱"),
+                    (4, "Jasa", "Layanan profesional, konsultasi, dan jasa lainnya", "🔧"),
+                    (5, "Pertanian", "Produk pertanian, perkebunan, dan peternakan", "🌾"),
+                    (6, "Kerajinan", "Produk handmade, seni, dan kerajinan tangan", "🎨"),
+                    (7, "Kesehatan", "Produk kesehatan, herbal, dan kecantikan", "💊"),
+                    (8, "Pendidikan", "Kursus, bimbel, dan layanan pendidikan", "📚"),
+                    (9, "Teknologi", "Software, aplikasi, dan layanan IT", "💻"),
+                    (10, "Lainnya", "Kategori usaha lainnya", "📦"),
+                ],
+            )
+
+        # --- UMKM Profiles (NPWP + Kategori) ---
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS umkm_profiles (
+              id CHAR(36) PRIMARY KEY,
+              user_id CHAR(36) NOT NULL,
+              kategori_id INT NULL,
+              npwp VARCHAR(50) NULL,
+              alamat TEXT NULL,
+              no_telp VARCHAR(20) NULL,
+              deskripsi_usaha TEXT NULL,
+              business_health_score INT NOT NULL DEFAULT 0,
+              created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              UNIQUE KEY uniq_umkm_profiles_user_id (user_id),
+              INDEX idx_umkm_profiles_kategori (kategori_id),
+              CONSTRAINT fk_umkm_profiles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+              CONSTRAINT fk_umkm_profiles_kategori FOREIGN KEY (kategori_id) REFERENCES kategori_usaha(id) ON DELETE SET NULL
+            )
+            """
+        )
+
+        # --- Tickets (Customer Service) ---
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tickets (
+              id CHAR(36) PRIMARY KEY,
+              user_id CHAR(36) NOT NULL,
+              operator_id CHAR(36) NULL,
+              subject VARCHAR(255) NOT NULL,
+              description TEXT NOT NULL,
+              kategori ENUM('umum','teknis','pembayaran','akun','lainnya') NOT NULL DEFAULT 'umum',
+              prioritas ENUM('rendah','sedang','tinggi') NOT NULL DEFAULT 'sedang',
+              status ENUM('open','in_progress','resolved','closed') NOT NULL DEFAULT 'open',
+              created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              INDEX idx_tickets_user_id (user_id),
+              INDEX idx_tickets_operator_id (operator_id),
+              INDEX idx_tickets_status (status),
+              CONSTRAINT fk_tickets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+              CONSTRAINT fk_tickets_operator FOREIGN KEY (operator_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ticket_replies (
+              id CHAR(36) PRIMARY KEY,
+              ticket_id CHAR(36) NOT NULL,
+              user_id CHAR(36) NOT NULL,
+              message TEXT NOT NULL,
+              created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              INDEX idx_ticket_replies_ticket_id (ticket_id),
+              CONSTRAINT fk_ticket_replies_ticket FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+              CONSTRAINT fk_ticket_replies_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+
+        # --- Notifications (WA Simulation) ---
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS notifications (
+              id CHAR(36) PRIMARY KEY,
+              user_id CHAR(36) NOT NULL,
+              title VARCHAR(255) NOT NULL,
+              message TEXT NOT NULL,
+              type ENUM('info','warning','success','wa_simulation') NOT NULL DEFAULT 'info',
+              is_read TINYINT(1) NOT NULL DEFAULT 0,
+              reference_type VARCHAR(50) NULL,
+              reference_id CHAR(36) NULL,
+              created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              INDEX idx_notifications_user_id (user_id),
+              INDEX idx_notifications_is_read (is_read),
+              CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+
         for statement in [
             "ALTER TABLE users MODIFY COLUMN role ENUM('admin','user','operator') NOT NULL DEFAULT 'user'",
             "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS package_name ENUM('free','basic','pro','enterprise') NULL AFTER user_id",

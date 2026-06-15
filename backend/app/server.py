@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime
 
+from flasgger import Swagger
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -11,8 +12,10 @@ from .analysis import analisis_lengkap, parse_rfc3339
 from .auth_routes import auth_bp
 from .data_store import get_fee_structure, get_smartbank_user_profile, get_transactions, load_dummy_data
 from .db import SUBSCRIPTION_PACKAGES, check_subscription_expiry, get_package_catalog
+from .insight_routes import insight_bp
 from .middleware import require_auth
 from .smartbank_routes import smartbank_bp
+from .ticket_routes import ticket_bp
 
 
 def error_response(message: str, status_code: int, extra: dict | None = None):
@@ -195,9 +198,29 @@ def create_app() -> Flask:
         supports_credentials=True,
     )
 
+    # Swagger / OpenAPI Configuration
+    app.config["SWAGGER"] = {
+        "title": "UMKM Insight API",
+        "description": "Dokumentasi API untuk platform analitik UMKM Insight. Semua transaksi bersifat READ-ONLY dari SmartBank.",
+        "version": "5.0.0",
+        "termsOfService": "",
+        "specs_route": "/apidocs/",
+        "securityDefinitions": {
+            "BearerAuth": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "JWT Token. Format: Bearer <token>",
+            }
+        },
+    }
+    Swagger(app)
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(smartbank_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(ticket_bp)
+    app.register_blueprint(insight_bp)
 
     @app.before_request
     def log_request():
@@ -243,10 +266,28 @@ def create_app() -> Flask:
                     "subscription": "GET /api/umkm_insight/biaya_akses_analytics?user_id=UMKM001",
                     "payment": "GET /api/smartbank/pay?user_id=xxx&package=pro&duration=bulanan",
                     "report_decline": "POST /api/smartbank/report-decline",
+                    "insight": {
+                        "benchmark": "GET /api/insight/benchmark",
+                        "predict": "GET /api/insight/predict",
+                        "health_score": "GET /api/insight/health-score",
+                        "kategori": "GET /api/insight/kategori",
+                        "profile": "GET /api/insight/profile",
+                    },
+                    "tickets": {
+                        "create": "POST /api/tickets/",
+                        "my_tickets": "GET /api/tickets/my",
+                        "all_tickets": "GET /api/tickets/all",
+                        "detail": "GET /api/tickets/<id>",
+                        "reply": "POST /api/tickets/<id>/reply",
+                        "assign": "PUT /api/tickets/<id>/assign",
+                        "status": "PUT /api/tickets/<id>/status",
+                    },
+                    "notifications": "GET /api/tickets/notifications/my",
                     "admin": {
                         "users": "GET /api/admin/users",
                         "stats": "GET /api/admin/stats",
                     },
+                    "swagger": "GET /apidocs/",
                 },
             }
         )

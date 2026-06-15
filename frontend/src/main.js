@@ -3,8 +3,11 @@ import { destroyCharts, renderCharts } from './charts.js'
 import { renderAdminPage } from './pages/admin.js'
 import { attachApiDocsEvents } from './pages/api_docs.js'
 import { attachLoginEvents, renderLoginPage } from './pages/login.js'
-import { attachRegisterEvents, renderRegisterPage } from './pages/register.js'
+import { attachOperatorEvents } from './pages/operator.js'
+import { attachRegisterEvents, fetchKategori, renderRegisterPage } from './pages/register.js'
 import { attachSubscriptionEvents } from './pages/subscription.js'
+import { attachTicketEvents } from './pages/ticket.js'
+import { attachUserManagementEvents } from './pages/user_management.js'
 import { renderApp, renderError, renderLoading, updateTransactionTable } from './render.js'
 import { apiGet, apiPost, getToken, removeToken, setToken } from './utils.js'
 
@@ -30,11 +33,21 @@ async function handleLogin(email, password) {
   setToken(response.token)
   state.user = response.user
   state.page = 'app'
+
+  // Set default section based on role
+  if (state.user.role === 'admin') {
+    state.activeSection = 'admin'
+  } else if (state.user.role === 'operator') {
+    state.activeSection = 'operator_panel'
+  } else {
+    state.activeSection = 'dashboard'
+  }
+
   await loadDashboardData()
 }
 
-async function handleRegister(nama_umkm, email, password) {
-  await apiPost('/api/auth/register', { nama_umkm, email, password, role: 'user' })
+async function handleRegister(nama_umkm, email, password, npwp, kategori_id) {
+  await apiPost('/api/auth/register', { nama_umkm, email, password, role: 'user', npwp: npwp || null, kategori_id: kategori_id || null })
 }
 
 async function handleUpgrade(packageName, duration) {
@@ -111,6 +124,12 @@ function attachEvents() {
         loadAdminData()
         return
       }
+      if (section === 'user_management') {
+        state.activeSection = 'user_management'
+        state.sidebarOpen = window.innerWidth <= 768 ? false : state.sidebarOpen
+        render()
+        return
+      }
       state.activeSection = section
       state.sidebarOpen = window.innerWidth <= 768 ? false : state.sidebarOpen
       render()
@@ -167,6 +186,19 @@ function attachEvents() {
 
   if (state.activeSection === 'api_docs') {
     attachApiDocsEvents()
+  }
+
+  if (state.activeSection === 'bantuan') {
+    attachTicketEvents()
+  }
+
+  if (state.activeSection === 'operator_panel') {
+    attachOperatorEvents()
+  }
+
+  if (state.activeSection === 'user_management') {
+    const isAdmin = state.user?.role === 'admin'
+    attachUserManagementEvents(isAdmin)
   }
 
   const reportButton = document.getElementById('report-smartbank-btn')
@@ -240,7 +272,7 @@ function render() {
   }
 }
 
-function renderPage() {
+async function renderPage() {
   switch (state.page) {
     case 'login':
       root.innerHTML = renderLoginPage()
@@ -249,13 +281,15 @@ function renderPage() {
         renderPage()
       })
       break
-    case 'register':
-      root.innerHTML = renderRegisterPage()
+    case 'register': {
+      const kategoriList = await fetchKategori()
+      root.innerHTML = renderRegisterPage(kategoriList)
       attachRegisterEvents(handleRegister, () => {
         state.page = 'login'
         renderPage()
       })
       break
+    }
     case 'app':
       render()
       break
@@ -277,6 +311,16 @@ async function init() {
     const response = await apiGet('/api/auth/me')
     state.user = response.user
     state.page = 'app'
+
+    // Set default section based on role
+    if (state.user.role === 'admin') {
+      state.activeSection = 'admin'
+    } else if (state.user.role === 'operator') {
+      state.activeSection = 'operator_panel'
+    } else {
+      state.activeSection = 'dashboard'
+    }
+
     await loadDashboardData()
   } catch (error) {
     console.error('Token validation failed:', error)

@@ -1,5 +1,8 @@
 import { renderApiDocsPage } from './pages/api_docs.js'
+import { renderOperatorPage } from './pages/operator.js'
 import { renderSubscriptionPage } from './pages/subscription.js'
+import { renderTicketPage } from './pages/ticket.js'
+import { renderUserManagementPage } from './pages/user_management.js'
 import { durationLabel, escapeHtml, formatDate, formatRupiah, packageLabel, sectionTitle } from './utils.js'
 
 function summaryCards(ringkasan) {
@@ -358,17 +361,34 @@ function sidebar(state) {
   const isAdmin = authUser?.role === 'admin'
   const isOperator = authUser?.role === 'operator'
 
-  const navItems = [
-    { key: 'dashboard', icon: '🏠', label: 'Dashboard' },
-    { key: 'analisis', icon: '📈', label: 'Analisis' },
-    { key: 'transaksi', icon: '📋', label: 'Transaksi' },
-    { key: 'insights', icon: '💡', label: 'Insights' },
-    { key: 'subscription', icon: '💳', label: 'Langganan' },
-    { key: 'api_docs', icon: '🔗', label: 'API Docs' },
-  ]
+  const navItems = []
 
-  if (isAdmin || isOperator) {
-    navItems.push({ key: 'admin', icon: '🛡️', label: 'Admin Panel' })
+  if (!isAdmin && !isOperator) {
+    // === User UMKM ===
+    navItems.push(
+      { key: 'dashboard', icon: '🏠', label: 'Dashboard' },
+      { key: 'analisis', icon: '📈', label: 'Analisis' },
+      { key: 'transaksi', icon: '📋', label: 'Transaksi' },
+      { key: 'insights', icon: '💡', label: 'Insights' },
+      { key: 'subscription', icon: '💳', label: 'Langganan' },
+      { key: 'bantuan', icon: '🎧', label: 'Bantuan' },
+      { key: 'api_docs', icon: '🔗', label: 'API Docs' },
+    )
+  } else if (isOperator) {
+    // === Operator ===
+    navItems.push(
+      { key: 'operator_panel', icon: '🎛️', label: 'Dashboard Operator' },
+      { key: 'user_management', icon: '👥', label: 'Kelola User' },
+      { key: 'api_docs', icon: '🔗', label: 'API Docs' },
+    )
+  } else if (isAdmin) {
+    // === Admin (Akses Penuh) ===
+    navItems.push(
+      { key: 'admin', icon: '🛡️', label: 'Dashboard Admin' },
+      { key: 'operator_panel', icon: '🎛️', label: 'Kelola Tiket' },
+      { key: 'user_management', icon: '👥', label: 'Kelola User' },
+      { key: 'api_docs', icon: '🔗', label: 'API Docs' },
+    )
   }
 
   return `
@@ -437,14 +457,29 @@ function header(section, subscription) {
 function mainSection(state) {
   const analisis = state.data.analisis
   const user = state.data.user
+  const authUser = state.user
   const packageName = user?.subscription?.package_name || 'free'
+  const isAdmin = authUser?.role === 'admin'
+  const isOperator = authUser?.role === 'operator'
 
-  if (state.activeSection === 'analisis') return analisisSection(analisis)
-  if (state.activeSection === 'transaksi') return transaksiSection(state.filteredTransactions, packageName)
-  if (state.activeSection === 'insights') return insightsSection(analisis, user)
-  if (state.activeSection === 'subscription') return renderSubscriptionPage(user, state.availablePackages || [])
+  // Shared pages
   if (state.activeSection === 'api_docs') return renderApiDocsPage()
-  return dashboardSection(analisis, user.subscription || {})
+  if (state.activeSection === 'operator_panel') return renderOperatorPage()
+  if (state.activeSection === 'user_management') return renderUserManagementPage(isAdmin)
+
+  // User UMKM pages
+  if (!isAdmin && !isOperator) {
+    if (state.activeSection === 'analisis') return analisisSection(analisis)
+    if (state.activeSection === 'transaksi') return transaksiSection(state.filteredTransactions, packageName)
+    if (state.activeSection === 'insights') return insightsSection(analisis, user)
+    if (state.activeSection === 'subscription') return renderSubscriptionPage(user, state.availablePackages || [])
+    if (state.activeSection === 'bantuan') return renderTicketPage()
+    return dashboardSection(analisis, user.subscription || {})
+  }
+
+  // Admin default = admin dashboard (loaded via loadAdminData)
+  // Operator default = operator panel
+  return renderOperatorPage()
 }
 
 export function renderApp(root, state) {
