@@ -9,40 +9,35 @@ export function renderAdminPage(usersData, statsData) {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>🛡️ Admin Panel</h2>
+        <h2>Admin Panel</h2>
         <p>Monitoring user, paket, masa aktif, dan aktivitas UMKM Insight.</p>
       </div>
 
       <div class="admin-stats-grid">
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">👥</div>
           <div class="admin-stat-value">${stats.total_users || 0}</div>
           <div class="admin-stat-label">Total Users</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">🧑‍💼</div>
           <div class="admin-stat-value">${stats.total_admins || 0}</div>
           <div class="admin-stat-label">Admin</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">🎛️</div>
           <div class="admin-stat-value">${stats.total_operators || 0}</div>
           <div class="admin-stat-label">Operator</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">✅</div>
           <div class="admin-stat-value">${stats.total_active_subscriptions || 0}</div>
           <div class="admin-stat-label">Subscription Aktif</div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon">💰</div>
           <div class="admin-stat-value">${formatRupiah(stats.total_revenue || 0)}</div>
           <div class="admin-stat-label">Revenue SmartBank</div>
         </div>
       </div>
 
       <div class="admin-section">
-        <h3>📦 Distribusi Paket</h3>
+        <h3>Distribusi Paket</h3>
         <div class="package-breakdown-grid">
           ${
             packageBreakdown.length
@@ -62,7 +57,7 @@ export function renderAdminPage(usersData, statsData) {
       </div>
 
       <div class="admin-section">
-        <h3>📋 Daftar User & Langganan</h3>
+        <h3>Daftar User & Langganan</h3>
         <div class="table-container">
           <table class="data-table">
             <thead>
@@ -106,7 +101,7 @@ export function renderAdminPage(usersData, statsData) {
       </div>
 
       <div class="admin-section">
-        <h3>📊 Aktivitas Terbaru</h3>
+        <h3>Aktivitas Terbaru</h3>
         <div class="activity-list">
           ${
             activities.length

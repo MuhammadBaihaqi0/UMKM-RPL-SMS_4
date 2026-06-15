@@ -7,10 +7,10 @@ import { durationLabel, escapeHtml, formatDate, formatRupiah, packageLabel, sect
 
 function summaryCards(ringkasan) {
   const cards = [
-    { label: 'Total Penjualan', value: ringkasan.total_penjualan, sub: `${ringkasan.jumlah_penjualan} transaksi penjualan`, icon: '💰', cls: 'card-penjualan' },
-    { label: 'Total Transaksi', value: ringkasan.jumlah_transaksi, sub: 'semua sumber SmartBank', icon: '📦', cls: 'card-rata-rata', raw: true },
-    { label: 'Rata-rata Penjualan', value: ringkasan.rata_rata_transaksi === null ? '🔒 Premium' : ringkasan.rata_rata_transaksi, sub: ringkasan.rata_rata_transaksi === null ? 'Upgrade ke paket berbayar' : 'per transaksi penjualan', icon: '📊', cls: 'card-laba', raw: ringkasan.rata_rata_transaksi === null },
-    { label: 'Total Biaya', value: ringkasan.total_pengeluaran, sub: 'pengeluaran & operasional', icon: '🧾', cls: 'card-pengeluaran' },
+    { label: 'Total Penjualan', value: ringkasan.total_penjualan, sub: `${ringkasan.jumlah_penjualan} transaksi penjualan`, cls: 'card-penjualan' },
+    { label: 'Total Transaksi', value: ringkasan.jumlah_transaksi, sub: 'semua sumber SmartBank', cls: 'card-rata-rata', raw: true },
+    { label: 'Rata-rata Penjualan', value: ringkasan.rata_rata_transaksi === null ? '🔒 Premium' : ringkasan.rata_rata_transaksi, sub: ringkasan.rata_rata_transaksi === null ? 'Upgrade ke paket berbayar' : 'per transaksi penjualan', cls: 'card-laba', raw: ringkasan.rata_rata_transaksi === null },
+    { label: 'Total Biaya', value: ringkasan.total_pengeluaran, sub: 'pengeluaran & operasional', cls: 'card-pengeluaran' },
   ]
 
   return `
@@ -18,8 +18,7 @@ function summaryCards(ringkasan) {
       ${cards
         .map(
           (card, index) => `
-            <div class="summary-card ${card.cls}" style="animation-delay:${index * 0.1}s">
-              <div class="card-icon">${card.icon}</div>
+            <div class="summary-card ${card.cls}">
               <div class="card-content">
                 <span class="card-label">${escapeHtml(card.label)}</span>
                 <span class="card-value">${card.raw ? escapeHtml(card.value) : formatRupiah(card.value)}</span>
@@ -39,7 +38,7 @@ function comparisonCard(comparison = {}, feeRatioPercent = 0) {
   return `
     <div class="comparison-card ${comparison.direction === 'turun' ? 'comparison-down' : 'comparison-up'}">
       <div>
-        <h3>📉 Perbandingan Bulanan</h3>
+        <h3>Perbandingan Bulanan</h3>
         <p>${escapeHtml(comparison.summary)}</p>
       </div>
       <div class="comparison-metrics">
@@ -57,7 +56,7 @@ function reportCard(reporting = {}) {
   return `
     <div class="report-card">
       <div class="report-card-header">
-        <h3>🏦 Pelaporan ke SmartBank</h3>
+        <h3>Pelaporan ke SmartBank</h3>
         <span class="status-badge ${reporting.can_report_decline ? 'status-active' : 'status-inactive'}">
           ${reporting.can_report_decline ? 'Tersedia' : 'Terkunci'}
         </span>
@@ -83,7 +82,7 @@ function dashboardSection(analisis, subscription) {
       <div class="charts-grid">
         <div class="chart-card chart-large">
           <div class="chart-header">
-            <h3>📈 Tren Penjualan</h3>
+            <h3>Tren Penjualan</h3>
             <span class="chart-badge">${escapeHtml(packageLabel(subscription.package_name || 'free'))}</span>
           </div>
           <div class="chart-container">
@@ -92,7 +91,7 @@ function dashboardSection(analisis, subscription) {
         </div>
         <div class="chart-card chart-medium">
           <div class="chart-header">
-            <h3>📊 Sumber Transaksi</h3>
+            <h3>Sumber Transaksi</h3>
             <span class="chart-badge">Marketplace • POS • Lainnya</span>
           </div>
           <div class="chart-container">
@@ -103,7 +102,7 @@ function dashboardSection(analisis, subscription) {
       <div class="charts-grid">
         <div class="chart-card chart-medium">
           <div class="chart-header">
-            <h3>🍩 Distribusi Transaksi</h3>
+            <h3>Distribusi Transaksi</h3>
             <span class="chart-badge">Read-Only</span>
           </div>
           <div class="chart-container chart-doughnut-container">
@@ -116,7 +115,7 @@ function dashboardSection(analisis, subscription) {
         </div>
         <div class="chart-card chart-large">
           <div class="chart-header">
-            <h3>💸 Pajak & Fee</h3>
+            <h3>Pajak & Fee</h3>
             <span class="chart-badge">Fee breakdown</span>
           </div>
           <div class="chart-container">
@@ -135,13 +134,12 @@ function insightPanel(insights) {
 
   return `
     <div class="insights-preview">
-      <div class="insights-header"><h3>🧠 Insight Cerdas</h3></div>
+      <div class="insights-header"><h3>Insight Cerdas</h3></div>
       <div class="insights-list">
         ${insights
           .map(
             (item, index) => `
               <div class="insight-item ${escapeHtml(item.type)}" style="animation-delay:${index * 0.1}s">
-                <span class="insight-icon">${escapeHtml(item.icon)}</span>
                 <span>${escapeHtml(item.message)}</span>
               </div>
             `,
@@ -158,12 +156,12 @@ function analisisSection(analisis) {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>📈 Analisis Penjualan Detail</h2>
+        <h2>Analisis Penjualan Detail</h2>
         <p>Semua data dibaca dari SmartBank tanpa menyimpan saldo dan tanpa CRUD transaksi.</p>
       </div>
       <div class="analisis-grid">
         <div class="analisis-card">
-          <h3>📋 Ringkasan</h3>
+          <h3>Ringkasan</h3>
           <table class="analisis-table">
             <thead><tr><th>Metrik</th><th>Nilai</th></tr></thead>
             <tbody>
@@ -176,7 +174,7 @@ function analisisSection(analisis) {
           </table>
         </div>
         <div class="analisis-card">
-          <h3>🏢 Sumber Pendapatan</h3>
+          <h3>Sumber Pendapatan</h3>
           <table class="analisis-table">
             <thead><tr><th>Sumber</th><th>Penjualan</th><th>Pengeluaran</th><th>Tx</th></tr></thead>
             <tbody>
@@ -196,7 +194,7 @@ function analisisSection(analisis) {
           </table>
         </div>
         <div class="analisis-card full-width">
-          <h3>💰 Pajak & Fee</h3>
+          <h3>Pajak & Fee</h3>
           <table class="analisis-table">
             <thead><tr><th>Jenis Biaya</th><th>Total</th></tr></thead>
             <tbody>
@@ -215,7 +213,7 @@ function analisisSection(analisis) {
         </div>
       </div>
       <div class="analisis-card full-width" style="margin-top: 1.5rem;">
-        <h3>🤖 AI Proyeksi Bisnis Bulan Depan</h3>
+        <h3>AI Proyeksi Bisnis Bulan Depan</h3>
         ${
           analisis.proyeksi_ai
             ? `<div class="proyeksi-card ${analisis.proyeksi_ai.trend}">
@@ -257,7 +255,7 @@ function transaksiSection(transactions, packageName) {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>📋 Data Transaksi</h2>
+        <h2>Data Transaksi</h2>
         <p>Data dibaca read-only dari SmartBank. Paket aktif: <strong>${escapeHtml(packageLabel(packageName))}</strong></p>
       </div>
       <div class="filter-bar">
@@ -283,7 +281,7 @@ function transaksiSection(transactions, packageName) {
         </div>
         <div class="filter-info" style="display:flex; gap:1rem; align-items:center;">
           <span>Menampilkan <span id="transaction-count">${transactions.length}</span> transaksi</span>
-          <button class="pricing-btn" style="padding:0.4rem 1rem; font-size:0.9rem;" ${isBasicOrFree ? 'disabled title="Tersedia di Paket Pro & Enterprise"' : 'onclick="alert(\'Fitur Export CSV Sedang Dimuat...\')"'}>📥 Export CSV</button>
+          <button class="pricing-btn" style="padding:0.4rem 1rem; font-size:0.9rem;" ${isBasicOrFree ? 'disabled title="Tersedia di Paket Pro & Enterprise"' : 'onclick="alert(\'Fitur Export CSV Sedang Dimuat...\')"'}>Export CSV</button>
         </div>
       </div>
       <div class="table-container">
@@ -303,7 +301,7 @@ function insightsSection(analisis, user) {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>💡 Insight Bisnis</h2>
+        <h2>Insight Bisnis</h2>
         <p>Insight otomatis berdasarkan transaksi SmartBank dan paket ${escapeHtml(packageLabel(subscription.package_name || 'free'))}.</p>
       </div>
       <div class="insights-full-grid">
@@ -311,7 +309,6 @@ function insightsSection(analisis, user) {
           .map(
             (item) => `
               <div class="insight-card-full">
-                <span class="insight-icon-large">${escapeHtml(item.icon)}</span>
                 <p class="insight-message">${escapeHtml(item.message)}</p>
               </div>
             `,
@@ -346,9 +343,7 @@ function insightsSection(analisis, user) {
 function footer() {
   return `
     <footer class="main-footer">
-      <p>📊 UMKM Insight v4.0 | Python + Flask + MySQL | SaaS Dashboard Read-Only</p>
-      <p>Dosen: M. Yusril Helmi Setyawan, S.Kom., M.Kom.</p>
-      <p class="footer-note">🔒 Tidak ada CRUD transaksi keuangan • Semua pembayaran hanya via SmartBank</p>
+      <p>UMKM Insight v5.0 — Dashboard Analitik Read-Only</p>
     </footer>
   `
 }
@@ -394,7 +389,7 @@ function sidebar(state) {
   return `
     <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}">
       <div class="sidebar-header">
-        <span class="sidebar-logo">📊</span>
+        <span class="sidebar-logo"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #0F4C3A"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
         <div class="sidebar-brand">
           <h2>UMKM Insight</h2>
           <span class="badge badge-readonly">READ-ONLY</span>
@@ -405,7 +400,6 @@ function sidebar(state) {
           .map(
             (item) => `
               <a href="#" class="nav-item ${section === item.key ? 'active' : ''}" data-nav="${item.key}">
-                <span class="nav-icon">${item.icon}</span>
                 <span class="nav-text">${item.label}</span>
               </a>
             `,
@@ -414,17 +408,17 @@ function sidebar(state) {
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
-          <div class="user-avatar">🏪</div>
+          <div class="user-avatar">${escapeHtml((authUser?.nama_umkm || user?.nama || 'U').charAt(0).toUpperCase())}</div>
           <div class="user-details">
             <span class="user-name">${escapeHtml(authUser?.nama_umkm || user?.nama || 'User')}</span>
             <span class="user-role">${escapeHtml(authUser?.role || 'user')}</span>
           </div>
         </div>
         <div class="subscription-badge">
-          <span>${subscription.package_name === 'free' ? '🆓' : '⭐'}</span>
+          <span></span>
           <span>${escapeHtml(packageLabel(subscription.package_name || 'free'))} • ${escapeHtml(subscription.status || 'active')}</span>
         </div>
-        <a href="#" class="logout-btn" id="logout-btn">🚪 Logout</a>
+        <a href="#" class="logout-btn" id="logout-btn">Keluar</a>
       </div>
     </aside>
   `
@@ -444,11 +438,7 @@ function header(section, subscription) {
         </div>
       </div>
       <div class="header-right">
-        <div class="header-badge">
-          <span class="badge badge-source">📦 SmartBank</span>
-          <span class="badge badge-gateway">🔗 API Gateway</span>
-          <span class="badge badge-lang">🐍 Python</span>
-        </div>
+        <span class="badge badge-source">SmartBank</span>
       </div>
     </header>
   `

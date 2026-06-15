@@ -8,12 +8,12 @@ export function renderTicketPage() {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>🎧 Pusat Bantuan</h2>
+        <h2>Pusat Bantuan</h2>
         <p>Kirim keluhan atau pertanyaan Anda. Tim operator kami siap membantu.</p>
       </div>
 
       <div class="ticket-create-card">
-        <h3>📝 Buat Tiket Baru</h3>
+        <h3>Buat Tiket Baru</h3>
         <form id="ticket-form" class="ticket-form">
           <div class="form-row">
             <div class="form-group">
@@ -53,7 +53,7 @@ export function renderTicketPage() {
       </div>
 
       <div class="ticket-list-section">
-        <h3>📋 Tiket Saya</h3>
+        <h3>Tiket Saya</h3>
         <div id="my-tickets-list" class="ticket-list">
           <div class="loading-mini">Memuat tiket...</div>
         </div>
@@ -183,7 +183,7 @@ async function openTicketDetail(ticketId) {
         <p>${escapeHtml(ticket.description)}</p>
       </div>
       <div class="ticket-chat">
-        <h4>💬 Percakapan</h4>
+        <h4>Percakapan</h4>
         <div class="chat-messages" id="chat-messages">
           ${
             replies.length

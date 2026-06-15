@@ -8,7 +8,7 @@ export function renderOperatorPage() {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>🎛️ Dashboard Operator</h2>
+        <h2>Dashboard Operator</h2>
         <p>Kelola keluhan dan tiket dari user UMKM. Pastikan semua keluhan ditangani.</p>
       </div>
 
@@ -167,7 +167,7 @@ async function openOperatorDetail(ticketId) {
       </div>
 
       <div class="ticket-chat">
-        <h4>💬 Percakapan</h4>
+        <h4>Percakapan</h4>
         <div class="chat-messages" id="op-chat-messages">
           ${
             replies.length

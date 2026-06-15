@@ -15,7 +15,7 @@ export function renderSubscriptionPage(user, packages = []) {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>💳 Paket Langganan</h2>
+        <h2>Paket Langganan</h2>
         <p>Pilih paket SaaS UMKM Insight. Pembayaran tetap diproses oleh SmartBank.</p>
       </div>
 
@@ -76,8 +76,8 @@ export function renderSubscriptionPage(user, packages = []) {
       </div>
 
       <div class="sub-info-note">
-        <p>🔒 <strong>Aturan Read-Only:</strong> UMKM Insight tidak memproses uang, tidak menyimpan saldo, dan tidak memiliki payment system internal.</p>
-        <p>🏦 Flow resmi: User → UMKM Insight → SmartBank → Response → Update status langganan.</p>
+        <p><strong>Aturan Read-Only:</strong> UMKM Insight tidak memproses uang, tidak menyimpan saldo, dan tidak memiliki payment system internal.</p>
+        <p>Flow resmi: User → UMKM Insight → SmartBank → Response → Update status langganan.</p>
       </div>
 
       <div id="payment-result" class="hidden"></div>

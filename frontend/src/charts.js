@@ -37,12 +37,12 @@ function renderTrendChart(data, chartStore) {
         {
           label: 'Total Penjualan',
           data: data.map((item) => item.total_penjualan),
-          borderColor: '#4f8cff',
-          backgroundColor: 'rgba(79,140,255,0.1)',
+          borderColor: '#0F4C3A',
+          backgroundColor: 'rgba(15, 76, 58, 0.08)',
           borderWidth: 3,
           fill: true,
           tension: 0.4,
-          pointBackgroundColor: '#4f8cff',
+          pointBackgroundColor: '#0F4C3A',
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
           pointRadius: 5,
@@ -51,8 +51,8 @@ function renderTrendChart(data, chartStore) {
         {
           label: 'Net Amount',
           data: data.map((item) => item.net_amount),
-          borderColor: '#a855f7',
-          backgroundColor: 'rgba(168,85,247,0.05)',
+          borderColor: '#2D8A67',
+          backgroundColor: 'rgba(45, 138, 103, 0.04)',
           borderWidth: 2,
           fill: true,
           tension: 0.4,
@@ -67,8 +67,8 @@ function renderTrendChart(data, chartStore) {
       plugins: {
         legend: {
           labels: {
-            color: '#8888aa',
-            font: { family: 'Inter' },
+            color: '#64748B',
+            font: { family: 'Inter, sans-serif' },
           },
         },
         tooltip: {
@@ -79,15 +79,15 @@ function renderTrendChart(data, chartStore) {
       },
       scales: {
         x: {
-          ticks: { color: '#555577' },
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#94A3B8' },
+          grid: { color: 'rgba(0,0,0,0.03)' },
         },
         y: {
           ticks: {
-            color: '#555577',
+            color: '#94A3B8',
             callback: (value) => rupiahShort(value),
           },
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          grid: { color: 'rgba(0,0,0,0.03)' },
         },
       },
     },
@@ -99,7 +99,7 @@ function renderSourceChart(data, chartStore) {
   if (!canvas || !data?.length) return
 
   const filtered = data.filter((item) => item.total_penjualan > 0)
-  const colors = ['#4f8cff', '#a855f7', '#34d399', '#fb923c', '#f87171']
+  const colors = ['#0F4C3A', '#1B6B52', '#2D8A67', '#10B981', '#6EE7B7']
 
   chartStore.sumber = new Chart(canvas, {
     type: 'bar',
@@ -130,15 +130,15 @@ function renderSourceChart(data, chartStore) {
       },
       scales: {
         x: {
-          ticks: { color: '#555577' },
+          ticks: { color: '#94A3B8' },
           grid: { display: false },
         },
         y: {
           ticks: {
-            color: '#555577',
+            color: '#94A3B8',
             callback: (value) => rupiahShort(value),
           },
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          grid: { color: 'rgba(0,0,0,0.03)' },
         },
       },
     },
@@ -151,7 +151,7 @@ function renderDistributionChart(data, chartStore) {
 
   const labels = Object.keys(data).map((key) => key.replace('_', ' '))
   const values = Object.values(data).map((value) => value.count)
-  const colors = ['#4f8cff', '#f87171', '#fbbf24', '#a855f7', '#34d399']
+  const colors = ['#0F4C3A', '#1B6B52', '#2D8A67', '#10B981', '#6EE7B7']
 
   chartStore.distribusi = new Chart(canvas, {
     type: 'doughnut',
@@ -161,8 +161,8 @@ function renderDistributionChart(data, chartStore) {
         {
           data: values,
           backgroundColor: colors.slice(0, values.length),
-          borderColor: '#0a0a1a',
-          borderWidth: 3,
+          borderColor: '#FFFFFF',
+          borderWidth: 2,
           hoverOffset: 8,
         },
       ],
@@ -175,8 +175,8 @@ function renderDistributionChart(data, chartStore) {
         legend: {
           position: 'bottom',
           labels: {
-            color: '#8888aa',
-            font: { family: 'Inter', size: 11 },
+            color: '#64748B',
+            font: { family: 'Inter, sans-serif', size: 11 },
             padding: 12,
           },
         },
@@ -207,7 +207,7 @@ function renderFeeChart(data, chartStore) {
     data.fee_gateway,
     data.pajak,
   ]
-  const colors = ['#4f8cff', '#a855f7', '#fb923c', '#34d399', '#fbbf24', '#06b6d4', '#f87171']
+  const colors = ['#0F4C3A', '#1B6B52', '#2D8A67', '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B']
 
   chartStore.fee = new Chart(canvas, {
     type: 'bar',
@@ -240,15 +240,15 @@ function renderFeeChart(data, chartStore) {
       scales: {
         x: {
           ticks: {
-            color: '#555577',
+            color: '#94A3B8',
             callback: (value) => rupiahShort(value),
           },
-          grid: { color: 'rgba(255,255,255,0.04)' },
+          grid: { color: 'rgba(0,0,0,0.03)' },
         },
         y: {
           ticks: {
-            color: '#8888aa',
-            font: { size: 11 },
+            color: '#64748B',
+            font: { family: 'Inter, sans-serif', size: 11 },
           },
           grid: { display: false },
         },

@@ -3,7 +3,7 @@ export function renderLoginPage() {
     <div class="auth-page">
       <div class="auth-card">
         <div class="auth-header">
-          <span class="auth-logo">📊</span>
+          <span class="auth-logo"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0F4C3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
           <h1 class="auth-title">UMKM Insight</h1>
           <p class="auth-subtitle">Dashboard Analitik Read-Only untuk Ekosistem UMKM Digital</p>
         </div>
@@ -26,7 +26,7 @@ export function renderLoginPage() {
           Belum punya akun? <a href="#" id="go-register" class="auth-link">Daftar Sekarang</a>
         </p>
         <div class="auth-info">
-          <p>🔒 Sistem Read-Only — Data dari SmartBank via API Gateway</p>
+          <p>Sistem Read-Only — Data dari SmartBank via API Gateway</p>
         </div>
       </div>
     </div>

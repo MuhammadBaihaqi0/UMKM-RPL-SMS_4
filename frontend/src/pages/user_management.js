@@ -4,12 +4,12 @@ export function renderUserManagementPage(isAdmin) {
   return `
     <section class="content-section">
       <div class="section-header">
-        <h2>👥 Kelola User</h2>
+        <h2>Kelola User</h2>
         <p>Cari user, lihat detail profil, reset password, dan ${isAdmin ? 'ubah role user.' : 'bantu troubleshooting.'}</p>
       </div>
 
       <div class="ticket-create-card">
-        <h3>🔍 Cari User</h3>
+        <h3>Cari User</h3>
         <div class="chat-input-area">
           <input type="text" id="user-search-input" class="form-group-input" placeholder="Ketik nama UMKM atau email user..." style="flex:1; padding:14px 16px; border:1px solid var(--glass-border); border-radius:var(--radius-sm); font-size:15px; font-family:inherit; background:#f8fafc; outline:none;" />
           <button class="pricing-btn" id="user-search-btn" style="width:auto; padding:14px 24px;">Cari</button>
@@ -104,7 +104,7 @@ async function openUserDetail(userId) {
     <div class="ticket-modal" id="user-modal-overlay">
       <div class="ticket-modal-content ticket-modal-wide">
         <div class="ticket-modal-header">
-          <h3>👤 Detail User</h3>
+          <h3>Detail User</h3>
           <button class="ticket-modal-close" id="close-user-modal">✕</button>
         </div>
         <div id="user-modal-body" style="padding:24px 28px;">
@@ -152,7 +152,7 @@ async function openUserDetail(userId) {
 
       <hr style="border:none; border-top:1px solid var(--glass-border); margin: 20px 0;" />
 
-      <h4 style="margin-bottom:12px;">🎫 Tiket Terbaru</h4>
+      <h4 style="margin-bottom:12px;">Tiket Terbaru</h4>
       ${
         tickets.length
           ? `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
@@ -161,7 +161,7 @@ async function openUserDetail(userId) {
           : '<p class="text-muted" style="margin-bottom:20px;">Belum ada tiket.</p>'
       }
 
-      <h4 style="margin-bottom:12px;">📊 Aktivitas Terbaru</h4>
+      <h4 style="margin-bottom:12px;">Aktivitas Terbaru</h4>
       ${
         activities.length
           ? `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
@@ -172,10 +172,10 @@ async function openUserDetail(userId) {
 
       <hr style="border:none; border-top:1px solid var(--glass-border); margin: 20px 0;" />
 
-      <h4 style="margin-bottom:12px;">⚡ Aksi</h4>
+      <h4 style="margin-bottom:12px;">Aksi</h4>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
         <div class="form-group" style="flex:1;min-width:200px;">
-          <label>🔒 Reset Password</label>
+          <label>Reset Password</label>
           <input type="password" id="new-pw-input" placeholder="Password baru (min 6 karakter)" style="padding:12px 16px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:#f8fafc;outline:none;width:100%;" />
         </div>
         <button class="pricing-btn op-action-btn" id="btn-reset-pw" data-uid="${u.id}" style="height:48px;">🔑 Reset</button>
@@ -185,7 +185,7 @@ async function openUserDetail(userId) {
       <div id="role-section" style="margin-top:20px; display:${document.querySelector('[data-admin-flag]') || true ? 'block' : 'none'};">
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
           <div class="form-group" style="flex:1;min-width:200px;">
-            <label>🛡️ Ubah Role (Admin Only)</label>
+            <label>Ubah Role (Admin Only)</label>
             <select id="new-role-select" style="padding:12px 16px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:#f8fafc;outline:none;width:100%;">
               <option value="user" ${u.role === 'user' ? 'selected' : ''}>User (UMKM)</option>
               <option value="operator" ${u.role === 'operator' ? 'selected' : ''}>Operator</option>

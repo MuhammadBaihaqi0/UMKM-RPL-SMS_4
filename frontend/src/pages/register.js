@@ -24,7 +24,7 @@ export function renderRegisterPage(kategoriOptions = []) {
     <div class="auth-page">
       <div class="auth-card auth-card-wide">
         <div class="auth-header">
-          <span class="auth-logo">📊</span>
+          <span class="auth-logo"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0F4C3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
           <h1 class="auth-title">Daftar Akun Baru</h1>
           <p class="auth-subtitle">Bergabung di ekosistem UMKM Insight</p>
         </div>
