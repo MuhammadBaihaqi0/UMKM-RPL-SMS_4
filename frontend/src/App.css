@@ -371,14 +371,14 @@ h1, h2, h3, h4, h5, h6, .card-value {
 .insights-header h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .insights-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 .insight-item {
-  display: flex; align-items: flex-start; gap: 12px; padding: 14px;
+  display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px;
   border-radius: 8px; background: var(--bg-primary);
   border: 1px solid transparent; transition: var(--transition-fast);
-  font-size: 14px; line-height: 1.5; position: relative; overflow: hidden;
+  font-size: 14px; line-height: 1.6; position: relative; overflow: hidden;
+  color: var(--text-primary); font-weight: 500;
 }
-.insight-item::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+.insight-item::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; }
 .insight-item:hover { background: #FFFFFF; border-color: var(--glass-border); box-shadow: var(--shadow-sm); }
-.insight-icon { font-size: 20px; flex-shrink: 0; }
 
 .insight-item.positive::before { background: var(--accent-green); }
 .insight-item.negative::before { background: var(--accent-red); }
@@ -398,8 +398,7 @@ h1, h2, h3, h4, h5, h6, .card-value {
 .insight-card-full:hover {
   transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--glass-border-highlight);
 }
-.insight-icon-large { font-size: 32px; }
-.insight-card-full .insight-message { font-size: 15px; line-height: 1.6; color: var(--text-primary); }
+.insight-message { font-size: 15px; line-height: 1.6; color: var(--text-primary); font-weight: 500; }
 
 /* ============================================
    Comparison & Report Cards
