@@ -17,7 +17,7 @@ async function fetchKategori() {
 
 export function renderRegisterPage(kategoriOptions = []) {
   const options = kategoriOptions
-    .map((k) => `<option value="${k.id}">${k.icon} ${k.nama_kategori}</option>`)
+    .map((k) => `<option value="${k.id}">${k.nama_kategori}</option>`)
     .join('')
 
   return `
