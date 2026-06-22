@@ -3,15 +3,25 @@ import { destroyCharts, renderCharts } from './charts.js'
 import { renderAdminPage } from './pages/admin.js'
 import { attachApiDocsEvents } from './pages/api_docs.js'
 import { attachLoginEvents, renderLoginPage } from './pages/login.js'
+import { attachForgotPasswordEvents, renderForgotPasswordPage } from './pages/forgot_password.js'
 import { attachOperatorEvents } from './pages/operator.js'
 import { attachRegisterEvents, fetchKategori, renderRegisterPage } from './pages/register.js'
 import { attachSubscriptionEvents } from './pages/subscription.js'
 import { attachTicketEvents } from './pages/ticket.js'
 import { attachUserManagementEvents } from './pages/user_management.js'
-import { renderApp, renderError, renderLoading, updateTransactionTable } from './render.js'
-import { apiGet, apiPost, getToken, removeToken, setToken } from './utils.js'
+import { renderApp, renderAppSkeleton, renderError, renderLoading, updateTransactionTable } from './render.js'
+import { apiGet, apiPost, getToken, removeToken, setToken, showToast } from './utils.js'
+
+window.showToast = showToast
 
 const root = document.getElementById('root')
+
+// Initialize theme from localStorage
+const savedTheme = localStorage.getItem('theme') || 'light'
+if (savedTheme === 'dark') {
+  document.body.classList.add('dark-theme')
+}
+
 const chartStore = {}
 
 const state = {
@@ -24,6 +34,7 @@ const state = {
   sidebarOpen: window.innerWidth > 768,
   sourceFilter: 'all',
   typeFilter: 'all',
+  monthFilter: '',
   availablePackages: [],
   adminData: null,
 }
@@ -44,6 +55,7 @@ async function handleLogin(email, password) {
   }
 
   await loadDashboardData()
+  window.showToast('Login berhasil', 'success')
 }
 
 async function handleRegister(nama_umkm, email, password, npwp, kategori_id) {
@@ -76,10 +88,15 @@ function handleLogout() {
   state.page = 'login'
   state.activeSection = 'dashboard'
   renderPage()
+  window.showToast('Anda telah logout', 'info')
 }
 
 async function loadDashboardData() {
   const umkmId = state.user?.umkm_id || 'UMKM001'
+
+  if (state.activeSection === 'dashboard' || state.activeSection === 'analisis') {
+    renderAppSkeleton(root, state)
+  }
 
   try {
     const [dashboardResponse, transactionResponse, packageResponse] = await Promise.allSettled([
@@ -111,6 +128,13 @@ function applyTransactionFilters() {
   let filtered = [...state.allTransactions]
   if (state.sourceFilter !== 'all') filtered = filtered.filter((item) => item.source_app === state.sourceFilter)
   if (state.typeFilter !== 'all') filtered = filtered.filter((item) => item.type === state.typeFilter)
+  if (state.monthFilter) {
+    filtered = filtered.filter((item) => {
+      const itemDate = new Date(item.date)
+      const itemMonthStr = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`
+      return itemMonthStr === state.monthFilter
+    })
+  }
   filtered.sort((left, right) => new Date(right.date) - new Date(left.date))
   state.filteredTransactions = filtered
 }
@@ -144,6 +168,15 @@ function attachEvents() {
     })
   }
 
+  const themeToggleBtn = document.getElementById('theme-toggle')
+  if (themeToggleBtn) {
+    themeToggleBtn.onclick = () => {
+      document.body.classList.toggle('dark-theme')
+      const isDark = document.body.classList.contains('dark-theme')
+      localStorage.setItem('theme', isDark ? 'dark' : 'light')
+    }
+  }
+
   const logoutBtn = document.getElementById('logout-btn')
   if (logoutBtn) {
     logoutBtn.addEventListener('click', (event) => {
@@ -175,6 +208,16 @@ function attachEvents() {
     typeFilter.value = state.typeFilter
     typeFilter.addEventListener('change', (event) => {
       state.typeFilter = event.target.value
+      applyTransactionFilters()
+      updateTransactionTable(state.filteredTransactions)
+    })
+  }
+
+  const monthFilter = document.getElementById('month-filter')
+  if (monthFilter) {
+    monthFilter.value = state.monthFilter
+    monthFilter.addEventListener('change', (event) => {
+      state.monthFilter = event.target.value
       applyTransactionFilters()
       updateTransactionTable(state.filteredTransactions)
     })
@@ -240,8 +283,10 @@ async function loadAdminData() {
     state.activeSection = 'admin'
     renderAdmin()
   } catch (error) {
-    console.error('Error loading admin data:', error)
-    alert('Gagal memuat admin panel. Pastikan akun Anda admin atau operator.')
+    console.error('Failed to load admin data:', error)
+    showToast('Gagal memuat admin panel. Pastikan akun Anda admin atau operator.', 'error')
+    state.activeSection = 'dashboard'
+    render()
   }
 }
 
@@ -273,28 +318,55 @@ function render() {
 }
 
 async function renderPage() {
-  switch (state.page) {
-    case 'login':
-      root.innerHTML = renderLoginPage()
-      attachLoginEvents(handleLogin, () => {
-        state.page = 'register'
-        renderPage()
-      })
-      break
-    case 'register': {
-      const kategoriList = await fetchKategori()
-      root.innerHTML = renderRegisterPage(kategoriList)
-      attachRegisterEvents(handleRegister, () => {
-        state.page = 'login'
-        renderPage()
-      })
-      break
+  let kategoriList = null
+  if (state.page === 'register') {
+    kategoriList = await fetchKategori()
+  }
+
+  const performUpdate = () => {
+    switch (state.page) {
+      case 'login':
+        root.innerHTML = renderLoginPage()
+        attachLoginEvents(handleLogin, (nextPage) => {
+          state.page = nextPage
+          renderPage()
+        })
+        break
+      case 'forgot_password':
+        root.innerHTML = renderForgotPasswordPage('request')
+        attachForgotPasswordEvents((nextPage) => {
+          state.page = nextPage
+          renderPage()
+        })
+        break
+      case 'reset_password_form':
+        root.innerHTML = renderForgotPasswordPage('reset')
+        attachForgotPasswordEvents((nextPage) => {
+          state.page = nextPage
+          renderPage()
+        })
+        break
+      case 'register':
+        root.innerHTML = renderRegisterPage(kategoriList)
+        attachRegisterEvents(handleRegister, () => {
+          state.page = 'login'
+          renderPage()
+        })
+        break
+      case 'app':
+        render()
+        break
+      default:
+        renderLoading(root)
     }
-    case 'app':
-      render()
-      break
-    default:
-      renderLoading(root)
+  }
+
+  if (document.startViewTransition) {
+    document.startViewTransition(() => {
+      performUpdate()
+    })
+  } else {
+    performUpdate()
   }
 }
 

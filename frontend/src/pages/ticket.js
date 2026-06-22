@@ -226,7 +226,7 @@ async function openTicketDetail(ticketId) {
           await apiPost(`/api/tickets/${ticketId}/reply`, { message: msg })
           openTicketDetail(ticketId) // Refresh
         } catch {
-          alert('Gagal mengirim balasan')
+          window.showToast('Gagal mengirim balasan', 'error')
         } finally {
           sendBtn.disabled = false
           sendBtn.textContent = 'Kirim'

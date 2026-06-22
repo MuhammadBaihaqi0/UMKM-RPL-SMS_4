@@ -207,7 +207,7 @@ async function openOperatorDetail(ticketId) {
           await apiPut(`/api/tickets/${ticketId}/assign`, {})
           openOperatorDetail(ticketId)
           loadAllTickets()
-        } catch { alert('Gagal mengambil alih tiket') }
+        } catch { window.showToast('Gagal mengambil alih tiket', 'error') }
       })
     }
 
@@ -219,7 +219,7 @@ async function openOperatorDetail(ticketId) {
           await apiPut(`/api/tickets/${ticketId}/status`, { status: 'resolved' })
           openOperatorDetail(ticketId)
           loadAllTickets()
-        } catch { alert('Gagal menyelesaikan tiket') }
+        } catch { window.showToast('Gagal menyelesaikan tiket', 'error') }
       })
     }
 
@@ -231,7 +231,7 @@ async function openOperatorDetail(ticketId) {
           await apiPut(`/api/tickets/${ticketId}/status`, { status: 'closed' })
           openOperatorDetail(ticketId)
           loadAllTickets()
-        } catch { alert('Gagal menutup tiket') }
+        } catch { window.showToast('Gagal menutup tiket', 'error') }
       })
     }
 
@@ -246,7 +246,7 @@ async function openOperatorDetail(ticketId) {
         try {
           await apiPost(`/api/tickets/${ticketId}/reply`, { message: msg })
           openOperatorDetail(ticketId)
-        } catch { alert('Gagal mengirim balasan') }
+        } catch { window.showToast('Gagal mengirim balasan', 'error') }
       })
     }
   } catch {

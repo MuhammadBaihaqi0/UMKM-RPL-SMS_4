@@ -98,3 +98,40 @@ export function durationLabel(duration) {
   }
   return labels[duration] || '-'
 }
+
+// ============================================
+// UI Helpers
+// ============================================
+
+export function showToast(message, type = 'success') {
+  let container = document.getElementById('toast-container')
+  if (!container) {
+    container = document.createElement('div')
+    container.id = 'toast-container'
+    document.body.appendChild(container)
+  }
+
+  const toast = document.createElement('div')
+  toast.className = `toast toast-${type}`
+  toast.innerHTML = `
+    <span class="toast-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+    <span class="toast-message">${escapeHtml(message)}</span>
+  `
+
+  container.appendChild(toast)
+
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.classList.add('toast-show')
+  })
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.classList.remove('toast-show')
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast)
+      }
+    }, 300)
+  }, 3000)
+}

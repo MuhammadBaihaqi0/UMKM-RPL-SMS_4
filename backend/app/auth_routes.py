@@ -221,3 +221,90 @@ def me():
     user = normalize_value(row)
     subscription = check_subscription_expiry(user_id)
     return jsonify({"status": "success", "user": {**user, "subscription": subscription}})
+
+
+@auth_bp.post("/forgot-password")
+def forgot_password():
+    import uuid
+    from datetime import UTC, datetime, timedelta
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "Body JSON diperlukan"}), 400
+
+    email = data.get("email", "").strip().lower()
+    if not email:
+        return jsonify({"status": "error", "message": "Email wajib diisi"}), 400
+
+    with get_cursor() as (connection, cursor):
+        cursor.execute("SELECT id FROM users WHERE email = %s LIMIT 1", (email,))
+        row = cursor.fetchone()
+        if not row:
+            # Tetap kembalikan success untuk mencegah user enumeration (keamanan standar)
+            return jsonify({"status": "success", "message": "Jika email terdaftar, instruksi reset akan ditampilkan."})
+
+        user_id = row["id"]
+        # Generate 6 karakter alfanumerik sebagai token simulasi OTP
+        reset_token = str(uuid.uuid4()).replace("-", "")[:6].upper()
+        expires_at = datetime.now(UTC) + timedelta(hours=1)
+        
+        cursor.execute(
+            """
+            UPDATE users SET reset_token = %s, reset_token_expires = %s WHERE id = %s
+            """,
+            (reset_token, expires_at.replace(tzinfo=None), user_id)
+        )
+        connection.commit()
+
+    return jsonify({
+        "status": "success", 
+        "message": f"Token Reset Anda: {reset_token}", 
+        "dev_token": reset_token
+    })
+
+
+@auth_bp.post("/reset-password")
+def reset_password():
+    data = request.get_json()
+    if not data:
+        return jsonify({"status": "error", "message": "Body JSON diperlukan"}), 400
+
+    token = data.get("token", "").strip().upper()
+    new_password = data.get("new_password", "")
+
+    if not token or not new_password:
+        return jsonify({"status": "error", "message": "Token dan password baru wajib diisi"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"status": "error", "message": "Password minimal 6 karakter"}), 400
+
+    with get_cursor() as (connection, cursor):
+        cursor.execute(
+            """
+            SELECT id, reset_token_expires FROM users WHERE reset_token = %s LIMIT 1
+            """,
+            (token,)
+        )
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({"status": "error", "message": "Token tidak valid atau sudah kedaluwarsa"}), 400
+
+        expires_at = row["reset_token_expires"]
+        if not expires_at or utc_now() > expires_at:
+            return jsonify({"status": "error", "message": "Token tidak valid atau sudah kedaluwarsa"}), 400
+
+        user_id = row["id"]
+        hashed_password = _hash_password(new_password)
+
+        cursor.execute(
+            """
+            UPDATE users 
+            SET password_hash = %s, reset_token = NULL, reset_token_expires = NULL 
+            WHERE id = %s
+            """,
+            (hashed_password, user_id)
+        )
+        connection.commit()
+
+    return jsonify({"status": "success", "message": "Password berhasil diubah! Silakan login dengan password baru."})

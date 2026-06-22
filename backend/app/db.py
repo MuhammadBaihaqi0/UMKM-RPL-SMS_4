@@ -342,6 +342,8 @@ def ensure_schema():
             "ALTER TABLE payment_logs ADD COLUMN IF NOT EXISTS duration ENUM('mingguan','bulanan','tahunan') NULL AFTER package_name",
             "ALTER TABLE payment_logs ADD COLUMN IF NOT EXISTS gateway_provider VARCHAR(50) NOT NULL DEFAULT 'SmartBank' AFTER smartbank_ref",
             "ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS metadata JSON NULL AFTER detail",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) NULL AFTER role",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME NULL AFTER reset_token",
         ]:
             cursor.execute(statement)
 

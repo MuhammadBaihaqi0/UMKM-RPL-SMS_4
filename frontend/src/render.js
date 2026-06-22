@@ -80,24 +80,32 @@ function dashboardSection(analisis, subscription) {
       ${summaryCards(analisis.ringkasan)}
       ${comparisonCard(analisis.comparison, analisis.fee_ratio_percent)}
       <div class="charts-grid">
-        <div class="chart-card chart-large">
-          <div class="chart-header">
-            <h3>Tren Penjualan</h3>
-            <span class="chart-badge">${escapeHtml(packageLabel(subscription.package_name || 'free'))}</span>
+        ${analisis.ringkasan.jumlah_transaksi === 0 ? `
+          <div class="empty-state-card" style="grid-column: 1 / -1; padding: 48px; text-align: center; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--glass-border);">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 16px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <h3 style="font-size: 18px; margin-bottom: 8px;">Belum Ada Data Penjualan</h3>
+            <p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto;">Grafik dan wawasan analitik akan muncul secara otomatis setelah ada transaksi yang tercatat dari SmartBank.</p>
           </div>
-          <div class="chart-container">
-            <canvas id="tren-chart"></canvas>
+        ` : `
+          <div class="chart-card chart-large">
+            <div class="chart-header">
+              <h3>Tren Penjualan</h3>
+              <span class="chart-badge">${escapeHtml(packageLabel(subscription.package_name || 'free'))}</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="tren-chart"></canvas>
+            </div>
           </div>
-        </div>
-        <div class="chart-card chart-medium">
-          <div class="chart-header">
-            <h3>Sumber Transaksi</h3>
-            <span class="chart-badge">Marketplace • POS • Lainnya</span>
+          <div class="chart-card chart-medium">
+            <div class="chart-header">
+              <h3>Sumber Transaksi</h3>
+              <span class="chart-badge">Marketplace • POS • Lainnya</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="sumber-chart"></canvas>
+            </div>
           </div>
-          <div class="chart-container">
-            <canvas id="sumber-chart"></canvas>
-          </div>
-        </div>
+        `}
       </div>
       <div class="charts-grid">
         <div class="chart-card chart-medium">
@@ -231,6 +239,20 @@ function analisisSection(analisis) {
 }
 
 function transactionRows(transactions) {
+  if (!transactions || transactions.length === 0) {
+    return `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 48px 24px;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--text-muted);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+            <p style="margin: 0; font-size: 15px; font-weight: 500;">Belum ada transaksi</p>
+            <p style="margin: 0; font-size: 13px;">Transaksi yang tercatat di SmartBank atau yang sesuai filter akan otomatis muncul di sini.</p>
+          </div>
+        </td>
+      </tr>
+    `
+  }
+
   return transactions
     .map(
       (transaction) => `
@@ -279,9 +301,13 @@ function transaksiSection(transactions, packageName) {
             <option value="subscription">Subscription</option>
           </select>
         </div>
+        <div class="filter-group">
+          <label for="month-filter">Bulan</label>
+          <input type="month" id="month-filter" class="filter-select" ${isBasicOrFree ? 'disabled title="Tersedia di paket Pro"' : ''} />
+        </div>
         <div class="filter-info" style="display:flex; gap:1rem; align-items:center;">
           <span>Menampilkan <span id="transaction-count">${transactions.length}</span> transaksi</span>
-          <button class="pricing-btn" style="padding:0.4rem 1rem; font-size:0.9rem;" ${isBasicOrFree ? 'disabled title="Tersedia di Paket Pro & Enterprise"' : 'onclick="alert(\'Fitur Export CSV Sedang Dimuat...\')"'}>Export CSV</button>
+          <button class="pricing-btn" style="padding:0.4rem 1rem; font-size:0.9rem;" ${isBasicOrFree ? 'disabled title="Tersedia di Paket Pro & Enterprise"' : 'onclick="window.showToast(\'Fitur Export CSV Sedang Dimuat...\', \'info\')"'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export CSV</button>
         </div>
       </div>
       <div class="table-container">
@@ -367,14 +393,12 @@ function sidebar(state) {
       { key: 'insights', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>', label: 'Insights' },
       { key: 'subscription', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>', label: 'Langganan' },
       { key: 'bantuan', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', label: 'Bantuan' },
-      { key: 'api_docs', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', label: 'API Docs' },
     )
   } else if (isOperator) {
     // === Operator ===
     navItems.push(
       { key: 'operator_panel', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>', label: 'Dashboard Operator' },
       { key: 'user_management', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', label: 'Kelola User' },
-      { key: 'api_docs', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', label: 'API Docs' },
     )
   } else if (isAdmin) {
     // === Admin (Akses Penuh) ===
@@ -382,7 +406,6 @@ function sidebar(state) {
       { key: 'admin', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>', label: 'Dashboard Admin' },
       { key: 'operator_panel', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>', label: 'Kelola Tiket' },
       { key: 'user_management', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', label: 'Kelola User' },
-      { key: 'api_docs', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', label: 'API Docs' },
     )
   }
 
@@ -416,10 +439,12 @@ function sidebar(state) {
           </div>
         </div>
         <div class="subscription-badge">
-          <span></span>
           <span>${escapeHtml(packageLabel(subscription.package_name || 'free'))} • ${escapeHtml(subscription.status || 'active')}</span>
         </div>
-        <a href="#" class="logout-btn" id="logout-btn">Keluar</a>
+        <a href="#" class="logout-btn" id="logout-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Keluar
+        </a>
       </div>
     </aside>
   `
@@ -439,6 +464,10 @@ function header(section, subscription) {
         </div>
       </div>
       <div class="header-right">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Dark Mode" type="button">
+          <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
         <span class="badge badge-source">SmartBank</span>
       </div>
     </header>
@@ -473,6 +502,40 @@ function mainSection(state) {
   return renderOperatorPage()
 }
 
+function bottomNav(state) {
+  const role = state.user?.role || 'user'
+  
+  let navItems = []
+  if (role === 'admin') {
+    navItems = [
+      { key: 'admin', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>', label: 'Dashboard' },
+      { key: 'user_management', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', label: 'Users' }
+    ]
+  } else if (role === 'operator') {
+    navItems = [
+      { key: 'operator_panel', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', label: 'Operator' }
+    ]
+  } else {
+    navItems = [
+      { key: 'dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>', label: 'Beranda' },
+      { key: 'transaksi', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>', label: 'Transaksi' },
+      { key: 'subscription', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>', label: 'Langganan' },
+      { key: 'bantuan', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', label: 'Bantuan' }
+    ]
+  }
+
+  return `
+    <nav class="bottom-nav">
+      ${navItems.map(item => `
+        <a href="#" class="bottom-nav-item ${state.activeSection === item.key ? 'active' : ''}" data-nav="${item.key}">
+          ${item.icon}
+          <span>${item.label}</span>
+        </a>
+      `).join('')}
+    </nav>
+  `
+}
+
 export function renderApp(root, state) {
   root.innerHTML = `
     <div class="app">
@@ -485,6 +548,35 @@ export function renderApp(root, state) {
         ${mainSection(state)}
         ${footer()}
       </main>
+      ${bottomNav(state)}
+    </div>
+  `
+}
+
+export function renderAppSkeleton(root, state) {
+  root.innerHTML = `
+    <div class="app">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="sidebar-overlay ${state.sidebarOpen ? 'active' : ''}" id="sidebar-overlay"></div>
+      ${sidebar(state)}
+      <main class="main-content">
+        ${header('Memuat...', {})}
+        <section class="content-section" style="padding: 32px;">
+          <div class="summary-grid">
+            <div class="summary-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+            <div class="summary-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+            <div class="summary-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+            <div class="summary-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+          </div>
+          <div class="charts-grid" style="margin-top:24px;">
+            <div class="chart-card chart-large"><div class="skeleton skeleton-chart"></div></div>
+            <div class="chart-card chart-medium"><div class="skeleton skeleton-chart"></div></div>
+          </div>
+        </section>
+        ${footer()}
+      </main>
+      ${bottomNav(state)}
     </div>
   `
 }
