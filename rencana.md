@@ -59,3 +59,6 @@ Berikut adalah rencana pengembangan yang sangat direkomendasikan untuk dikerjaka
 > [!TIP]
 > **Cara Menjual Ide Ini ke Investor (Elevator Pitch):**
 > *"UMKM Insight bukan sekadar aplikasi pencatatan keuangan. Kami adalah CFO (Chief Financial Officer) digital berbasis AI untuk 65 juta UMKM di Indonesia. Kami mengambil data mentah dari bank, menganalisisnya secara otomatis, dan memberikan rekomendasi aksi nyata—bahkan menyalurkan pinjaman modal saat mesin AI kami mendeteksi mereka siap untuk berekspansi."*
+
+
+Tambahkan readme
